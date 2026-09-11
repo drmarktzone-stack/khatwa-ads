@@ -21,6 +21,7 @@ If a fact is missing, do not mention it.
 Never invent Jerusalem / القدس / ירושלים unless FACTS.place already contains it.
 Never use a marketing slogan as the business name. «طفلك بخير وقلبك مرتاح» is USP/description ONLY — never the name.
 Use this name only: "${name}". Pediatric / Samer / عيادتي sites brand as عيادتي. Doctor name may appear as a fact, not as a slogan-name.
+Never repeat the brand/name or the doctor in the same line. Forbidden: «هاي عيادتي — عيادتي», «عيادتي عيادتي», or any «X — X» / consecutive proper-name. Prefer «هاي ${name}${facts.place.value ? ` في ${facts.place.value}` : ""}» and «الولد سخن؟ ${name} بتسمعك اليوم». Doctor name at most once per line.
 Clalit/insurance only if present in FACTS.insurance.
 Banned phones as the shop number: 100, 101, 911.
 Niche is exactly "${facts.niche}" (${nicheLabel(facts.niche, "ar")}). Use this niche's angles only. Do not dump clinic hooks on a restaurant or dental lines on a plumber.

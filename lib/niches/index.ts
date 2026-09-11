@@ -1,6 +1,14 @@
 export { SUPPORTED_NICHES, NICHE_REGISTRY, getNiche, nicheLabel, allNicheLabels } from "./registry";
 export { detectNiche, classifySite, scoreNiches } from "./detect";
-export { buildCopyLines, sanitizeGeneratedLines, groupLinesByAngle, angleGroupOf, fillTemplate } from "./copy";
+export {
+  buildCopyLines,
+  sanitizeGeneratedLines,
+  groupLinesByAngle,
+  angleGroupOf,
+  fillTemplate,
+  lineRepeatsProperName,
+  countPhrase,
+} from "./copy";
 export {
   safeDisplayName,
   pickHonestName,

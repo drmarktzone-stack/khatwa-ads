@@ -1,6 +1,6 @@
 import { assertDistinct, dedupeLines } from "../guards";
 import type { BusinessFacts, CopyKind, CopyLine, Lang } from "../types";
-import { isBannedSloganName, lineInventsFacts, safeDisplayName } from "./brand";
+import { isBannedSloganName, lineInventsFacts, safeDisplayName, shortenDoctor } from "./brand";
 import { getNiche } from "./registry";
 import type { CopyTemplate } from "./types";
 import { ANGLE_GROUPS, type AngleGroupId } from "./types";
@@ -17,6 +17,96 @@ function pick(facts: BusinessFacts, i: number) {
     slogan: facts.slogan.value,
     insurance: facts.insurance.value,
   };
+}
+
+function escapeRe(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Count whole-phrase hits. Arabic/Hebrew have no JS `\b`, so use letter/number lookaround. */
+export function countPhrase(text: string, phrase: string): number {
+  const needle = phrase.replace(/\s+/g, " ").trim();
+  if (!needle || needle.length < 2) return 0;
+  const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(needle)}(?![\\p{L}\\p{N}])`, "gu");
+  return text.match(re)?.length ?? 0;
+}
+
+const GENERIC_NAME_WORDS = new Set(
+  [
+    "عيادة",
+    "عيادات",
+    "מרפאה",
+    "מרפאת",
+    "clinic",
+    "page",
+    "صفحة",
+    "مكتب",
+    "مطعم",
+    "صالون",
+    "دكتور",
+    "الدكتور",
+    "רופא",
+    "doctor",
+    "the",
+    "and",
+  ].map((w) => w.toLowerCase()),
+);
+
+export function properNamePhrases(
+  facts: Pick<BusinessFacts, "name" | "host" | "niche" | "url" | "doctorName">,
+): string[] {
+  const out: string[] = [];
+  const add = (raw: string | null | undefined) => {
+    const value = (raw || "").replace(/\s+/g, " ").trim();
+    if (value.length >= 2 && !out.includes(value)) out.push(value);
+  };
+  add(safeDisplayName(facts));
+  add(facts.name.value);
+  add(facts.doctorName.value);
+  if (facts.doctorName.value) add(shortenDoctor(facts.doctorName.value));
+  return out;
+}
+
+function properNameTokens(phrases: string[], displayName: string): string[] {
+  const tokens = new Set<string>();
+  for (const phrase of phrases) {
+    tokens.add(phrase);
+    for (const raw of phrase.split(/[\s|/]+/)) {
+      const token = raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+      if (token.length < 3) continue;
+      if (GENERIC_NAME_WORDS.has(token.toLowerCase()) && token !== displayName) continue;
+      tokens.add(token);
+    }
+  }
+  return [...tokens];
+}
+
+const CONSECUTIVE_NAME =
+  /(?<![\p{L}\p{N}])([\p{L}\p{N}.]{3,})\s+\1(?![\p{L}\p{N}])/u;
+const DASHED_NAME =
+  /(?<![\p{L}\p{N}])([\p{L}\p{N}.]{3,})\s*[—–\-]\s*\1(?![\p{L}\p{N}])/u;
+
+/**
+ * Diversity gate: brand/name and doctor appear at most once.
+ * Also reject consecutive repeats and «X — X» for a proper name.
+ */
+export function lineRepeatsProperName(
+  text: string,
+  facts: Pick<BusinessFacts, "name" | "host" | "niche" | "url" | "doctorName">,
+): boolean {
+  const hay = (text || "").replace(/\s+/g, " ").trim();
+  if (!hay) return false;
+  const phrases = properNamePhrases(facts);
+  const display = safeDisplayName(facts);
+  for (const phrase of phrases) {
+    if (countPhrase(hay, phrase) > 1) return true;
+  }
+  const tokens = properNameTokens(phrases, display);
+  const consec = hay.match(CONSECUTIVE_NAME);
+  if (consec && tokens.some((t) => t === consec[1] || t.includes(consec[1]))) return true;
+  const dashed = hay.match(DASHED_NAME);
+  if (dashed && tokens.some((t) => t === dashed[1] || t.includes(dashed[1]))) return true;
+  return false;
 }
 
 export function fillTemplate(template: string, facts: BusinessFacts, index: number): string {
@@ -57,6 +147,7 @@ function renderSeed(seed: CopyTemplate, facts: BusinessFacts, lang: Lang, index:
   const ctaLabel = fillTemplate(ctaRaw, facts, index);
   if (!text || !ctaLabel) return null;
   if (lineInventsFacts(text, facts) || lineInventsFacts(ctaLabel, facts)) return null;
+  if (lineRepeatsProperName(text, facts) || lineRepeatsProperName(ctaLabel, facts)) return null;
   return {
     id: `${seed.kind}-${seed.angle}`,
     kind: seed.kind,
@@ -116,6 +207,7 @@ export function buildCopyLines(facts: BusinessFacts, lang: Lang): CopyLine[] {
       if (unique.length >= 24) break;
       if (unique.some((l) => l.text === extra.text)) continue;
       if (lineInventsFacts(extra.text, facts)) continue;
+      if (lineRepeatsProperName(extra.text, facts) || lineRepeatsProperName(extra.ctaLabel, facts)) continue;
       unique.push(extra);
     }
   }
@@ -128,6 +220,7 @@ export function sanitizeGeneratedLines(lines: CopyLine[], facts: BusinessFacts):
   return dedupeLines(
     lines.filter((line) => {
       if (lineInventsFacts(line.text, facts) || lineInventsFacts(line.ctaLabel, facts)) return false;
+      if (lineRepeatsProperName(line.text, facts) || lineRepeatsProperName(line.ctaLabel, facts)) return false;
       if (isBannedSloganName(line.text) && !facts.slogan.value) return false;
       if (sloganLeak.test(line.text) && !facts.slogan.value && !sloganLeak.test(name)) return false;
       return true;

@@ -15,8 +15,10 @@ import {
   filterRealPhones,
   isBannedPhone,
   isBannedSloganName,
+  lineRepeatsProperName,
   nicheLabel,
   pickHonestName,
+  sanitizeGeneratedLines,
 } from "../lib/niches";
 import { DEMOS, factsFromDemo, factsFromHtml, scanBusinessUrl } from "../lib/scan";
 
@@ -57,6 +59,10 @@ test("each niche warehouse yields ≥20 distinct Palestinian-AR lines", () => {
     assert.equal(assertDistinct(lines), true, `${demo.slug} not distinct`);
     assert.equal(isBannedSloganName(facts.name.value), false);
     assert.ok(lines.every((l) => l.text.includes(facts.name.value || "") || l.text.length > 4));
+    assert.ok(
+      lines.every((l) => !lineRepeatsProperName(l.text, facts) && !lineRepeatsProperName(l.ctaLabel, facts)),
+      `${demo.slug} duplicated brand/name or doctor`,
+    );
     assert.ok(!lines.some((l) => /القدس|ירושלים|Jerusalem/.test(l.text)), `${demo.slug} invented Jerusalem`);
     if (demo.niche !== "pediatric_clinics") {
       assert.ok(!lines.some((l) => BANNED_NAME_SLOGANS.some((s) => l.text.includes(s))));
@@ -165,6 +171,87 @@ test("drsamerped fixture → pediatric_clinics, عيادتي, slogan USP only, n
   assert.ok(lines.some((l) => /عيادتي/.test(l.text)));
   assert.ok(lines.some((l) => /طفلك بخير وقلبك مرتاح/.test(l.text) && /slogan|usp/.test(l.angle)));
   assert.ok(lines.some((l) => /كلاليت|כללית/.test(l.text)));
+  assert.ok(lines.some((l) => l.text === "هاي عيادتي في باقة الغربية"));
+  assert.ok(lines.some((l) => l.text === "الولد سخن؟ عيادتي بتسمعك اليوم"));
+  assert.ok(!lines.some((l) => /هاي عيادتي\s*[—–-]\s*عيادتي/.test(l.text) || /عيادتي\s+عيادتي/.test(l.text)));
+  assert.ok(lines.every((l) => !lineRepeatsProperName(l.text, facts)));
+});
+
+test("diversity gate rejects duplicated brand/name — consecutive or «X — X»", () => {
+  const html = readFileSync(join(here, "fixtures/drsamerped.html"), "utf8");
+  const { facts } = factsFromHtml(html, "https://drsamerped.ai.studio/");
+  assert.equal(facts.name.value, "عيادتي");
+  assert.match(facts.doctorName.value || "", /سامر/);
+
+  assert.equal(lineRepeatsProperName("هاي عيادتي — عيادتي", facts), true);
+  assert.equal(lineRepeatsProperName("هاي عيادتي - عيادتي", facts), true);
+  assert.equal(lineRepeatsProperName("الولد سخن؟ عيادتي عيادتي بتسمعك اليوم", facts), true);
+  assert.equal(lineRepeatsProperName("هاي عيادتي في باقة الغربية", facts), false);
+  assert.equal(lineRepeatsProperName("الولد سخن؟ عيادتي بتسمعك اليوم", facts), false);
+  assert.equal(lineRepeatsProperName("اسألي د. سامر عن الحرارة واسألي د. سامر كمان", facts), true);
+  assert.equal(lineRepeatsProperName("اسألي د. سامر عن حرارة أو سعال", facts), false);
+
+  const kept = sanitizeGeneratedLines(
+    [
+      { id: "bad-dash", kind: "headline", angle: "name-only", text: "هاي عيادتي — عيادتي", ctaLabel: "ادخل" },
+      {
+        id: "bad-consec",
+        kind: "headline",
+        angle: "today",
+        text: "الولد سخن؟ عيادتي عيادتي بتسمعك اليوم",
+        ctaLabel: "احجزي",
+      },
+      {
+        id: "good-place",
+        kind: "headline",
+        angle: "name-place",
+        text: "هاي عيادتي في باقة الغربية",
+        ctaLabel: "شوف وين",
+      },
+      {
+        id: "good-fever",
+        kind: "headline",
+        angle: "today",
+        text: "الولد سخن؟ عيادتي بتسمعك اليوم",
+        ctaLabel: "احجزي واتساب",
+      },
+    ],
+    facts,
+  );
+  assert.deepEqual(
+    kept.map((l) => l.id),
+    ["good-place", "good-fever"],
+  );
+
+  const lines = buildCopyLines(facts, "ar");
+  assert.ok(lines.some((l) => l.text === "هاي عيادتي في باقة الغربية"));
+  assert.ok(lines.some((l) => l.text === "الولد سخن؟ عيادتي بتسمعك اليوم"));
+  assert.ok(!lines.some((l) => /هاي عيادتي\s*[—–-]\s*عيادتي/.test(l.text)));
+  assert.ok(!lines.some((l) => /عيادتي\s+عيادتي/.test(l.text)));
+  assert.ok(lines.every((l) => !lineRepeatsProperName(l.text, facts)));
+  assert.ok(lines.every((l) => !lineRepeatsProperName(l.ctaLabel, facts)));
+
+  for (const [id, def] of Object.entries(NICHE_REGISTRY)) {
+    for (const seed of def.copy) {
+      for (const lang of ["ar", "he", "en"] as const) {
+        const body = lang === "he" ? seed.he : lang === "en" ? seed.en : seed.ar;
+        const nameSlots = body.match(/\{name\}/g)?.length ?? 0;
+        const doctorSlots = body.match(/\{doctor\}/g)?.length ?? 0;
+        assert.ok(nameSlots <= 1, `${id} ${seed.angle} ${lang} repeats {name}`);
+        assert.ok(doctorSlots <= 1, `${id} ${seed.angle} ${lang} repeats {doctor}`);
+        assert.ok(
+          !( /عيادتي/.test(body) && /\{name\}/.test(body) ),
+          `${id} ${seed.angle} ${lang} hardcodes عيادتي next to {name}`,
+        );
+      }
+    }
+    for (const motif of def.motifs) {
+      assert.ok(
+        !( /عيادتي/.test(motif.captionAr) && /\{name\}/.test(motif.captionAr) ),
+        `${id} ${motif.id} caption hardcodes عيادتي next to {name}`,
+      );
+    }
+  }
 });
 
 test("Jerusalem is never invented from a casual mention", () => {

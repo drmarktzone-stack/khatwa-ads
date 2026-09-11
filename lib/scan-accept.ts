@@ -42,7 +42,7 @@ export function resolveMarketplacePayload(
 ): MarketplaceResolve {
   if (!stored?.facts) return { kind: "empty" };
   const attempted = (lastScanUrl || stored.inputUrl || "").trim();
-  if (attempted && !findExplicitDemo(attempted) && isSampleBusiness(stored.facts)) {
+  if (isSampleBusiness(stored.facts) && !findExplicitDemo(attempted)) {
     return { kind: "rejected_demo" };
   }
   return { kind: "ok", payload: stored };

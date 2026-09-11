@@ -177,6 +177,9 @@ test("scan flow with live clinic URLs never yields the sample clinic", async (t)
 
 test("marketplace never auto-injects the sample clinic", () => {
   assert.equal(resolveMarketplacePayload(null, "https://www.ram.dental/").kind, "empty");
+  assert.equal(resolveMarketplacePayload(null, "").kind, "empty");
+  assert.equal(resolveMarketplacePayload(demoPayload(), "").kind, "rejected_demo");
+  assert.equal(resolveMarketplacePayload(demoPayload(), null).kind, "rejected_demo");
   const hijack = resolveMarketplacePayload(demoPayload(), "https://www.ram.dental/");
   assert.equal(hijack.kind, "rejected_demo");
   const explicit = resolveMarketplacePayload(demoPayload(), DEMOS[0].url);

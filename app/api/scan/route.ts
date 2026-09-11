@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { imagesForFacts } from "@/lib/images";
-import { linesWithOptionalGemini } from "@/lib/gemini";
+import { generateArabicLines } from "@/lib/gemini";
+import { composeImages } from "@/lib/images";
 import { noticeText } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
 import { scanBusinessUrl } from "@/lib/scan";
+import { translateLines } from "@/lib/translate";
 import type { ScanPayload } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -18,16 +19,24 @@ export async function POST(req: Request) {
   }
 
   const lang = parseLang(body.lang);
-  const { facts, noticeKey } = await scanBusinessUrl(body.url || "", lang);
-  const { lines, usedGemini } = await linesWithOptionalGemini(facts, lang);
-  const images = imagesForFacts(facts, lang);
+  const { facts, noticeKey, siteImages } = await scanBusinessUrl(body.url || "", lang);
+  const generated = await generateArabicLines(facts);
+  const translated = await translateLines(generated.lines, facts, lang);
+  const composed = await composeImages(facts, lang, siteImages);
 
   const payload: ScanPayload = {
     facts,
-    lines,
-    images,
+    baseLines: generated.lines,
+    lines: translated.lines,
+    images: composed.images,
     outOfNiche: facts.niche === "out_of_niche",
-    usedGemini,
+    tools: {
+      gemini: generated.usedGemini,
+      grounding: generated.usedGrounding,
+      translate: translated.usedTranslate,
+      imagen: composed.usedImagen,
+      siteImages: composed.usedSite,
+    },
     notice: noticeText(noticeKey, lang),
     lang,
   };

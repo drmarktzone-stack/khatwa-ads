@@ -12,6 +12,8 @@ export type CopyKind = "headline" | "hook" | "cta";
 
 export type EvidenceLevel = "on_page" | "missing" | "demo" | "hostname";
 
+export type ImageSource = "site" | "stock" | "generated" | "demo";
+
 export interface FactField {
   value: string | null;
   evidence: EvidenceLevel;
@@ -23,7 +25,10 @@ export interface BusinessFacts {
   host: string;
   name: FactField;
   phone: FactField;
+  phones: string[];
+  whatsapp: FactField;
   place: FactField;
+  hours: FactField;
   services: string[];
   servicesEvidence: EvidenceLevel;
   description: FactField;
@@ -46,14 +51,24 @@ export interface NicheImage {
   src: string;
   alt: string;
   caption: string;
+  source: ImageSource;
+}
+
+export interface ToolFlags {
+  gemini: boolean;
+  grounding: boolean;
+  translate: boolean;
+  imagen: boolean;
+  siteImages: boolean;
 }
 
 export interface ScanPayload {
   facts: BusinessFacts;
+  baseLines: CopyLine[];
   lines: CopyLine[];
   images: NicheImage[];
   outOfNiche: boolean;
-  usedGemini: boolean;
+  tools: ToolFlags;
   notice: string | null;
   lang: Lang;
 }

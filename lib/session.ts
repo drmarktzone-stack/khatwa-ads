@@ -39,8 +39,13 @@ export function defaultSelection(payload: ScanPayload): SelectionState {
   const headlines = payload.lines.filter((l) => l.kind === "headline").slice(0, 4);
   const hooks = payload.lines.filter((l) => l.kind === "hook").slice(0, 3);
   const ctas = payload.lines.filter((l) => l.kind === "cta").slice(0, 2);
+  const siteFirst = [
+    ...payload.images.filter((i) => i.source === "site" || i.source === "demo"),
+    ...payload.images,
+  ];
+  const imageIds = [...new Set(siteFirst.map((i) => i.id))].slice(0, 3);
   return {
     lineIds: [...headlines, ...hooks, ...ctas].map((l) => l.id),
-    imageIds: payload.images.slice(0, 3).map((i) => i.id),
+    imageIds,
   };
 }

@@ -1,3 +1,4 @@
+import { gcpConfig, toolsAvailable, vertexGenerate, vertexPredict } from "./gcp";
 import type { BusinessFacts, Lang, Niche, NicheImage } from "./types";
 
 interface Stock {
@@ -43,9 +44,9 @@ const STOCK: Record<Niche, Stock[]> = {
   renovation: [
     { id: "n1", src: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=900&q=80", theme: "site" },
     { id: "n2", src: "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=900&q=80", theme: "kitchen" },
-    { id: "n3", src: "https://images.unsplash.com/photo-1505797149-43b0069ec26b?w=900&q=80", theme: "tools" },
+    { id: "n3", src: "https://images.unsplash.com/photo-1505797149-43b0069ec26b?w=900&q=80", theme: "build" },
     { id: "n4", src: "https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?w=900&q=80", theme: "paint" },
-    { id: "n5", src: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=900&q=80", theme: "build" },
+    { id: "n5", src: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=900&q=80", theme: "tools" },
     { id: "n6", src: "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=900&q=80", theme: "interior" },
     { id: "n7", src: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=900&q=80", theme: "crew" },
     { id: "n8", src: "https://images.unsplash.com/photo-1556912173-46c336c7fd55?w=900&q=80", theme: "home" },
@@ -75,183 +76,184 @@ const STOCK: Record<Niche, Stock[]> = {
   ],
 };
 
-function captionFor(stock: Stock, facts: BusinessFacts, lang: Lang, index: number): string {
+const THEME_AR: Record<string, (n: string, p: string | null, s: string | null, i: number) => string> = {
+  reception: (n) => `${n} — المدخل الظاهر`,
+  chair: (n, _p, s) => (s ? `${n}: كرسي ${s}` : `${n} — كرسي العلاج`),
+  tools: (n) => `${n} — أدوات الشغل`,
+  hallway: (n, p) => (p ? `ممر ${n} في ${p}` : `ممر ${n}`),
+  care: (n) => `رعاية ${n}`,
+  team: (n) => `ناس ${n}`,
+  consult: (n) => `جلسة ${n}`,
+  calm: (n, p) => (p ? `هدوء ${n} — ${p}` : `هدوء ${n}`),
+  light: (n) => `ضوء إعلان ${n}`,
+  desk: (n, _p, s) => (s ? `مكتب ${s} — ${n}` : `مكتب ${n}`),
+  books: (n) => `كتب ${n}`,
+  classroom: (n, p) => (p ? `حصة ${n} قرب ${p}` : `حصة ${n}`),
+  notes: (n) => `دفتر ${n}`,
+  board: (n) => `لوح ${n}`,
+  pair: (n) => `حصة ثنائية — ${n}`,
+  write: (n) => `كتابة عند ${n}`,
+  lecture: (n) => `شرح ${n}`,
+  plan: (n) => `خطة ${n}`,
+  room: (n, p) => (p ? `صالة ${n} — ${p}` : `صالة ${n}`),
+  coffee: (n) => `قهوة ${n}`,
+  plated: (n, _p, s) => (s ? `طبق ${s} — ${n}` : `طبق ${n}`),
+  table: (n) => `طاولة ${n}`,
+  street: (n, p) => (p ? `واجهة ${n} في ${p}` : `واجهة ${n}`),
+  dish: (n, _p, s, i) => (s ? `${s} #${i + 1} عند ${n}` : `أكل ${n}`),
+  cafe: (n) => `ركن ${n}`,
+  pastry: (n) => `حلويات ${n}`,
+  evening: (n) => `مساء ${n}`,
+  site: (n, p) => (p ? `ورشة ${n} — ${p}` : `ورشة ${n}`),
+  kitchen: (n, _p, s) => (s ? `${s} مطبخ — ${n}` : `مطبخ ${n}`),
+  build: (n) => `شغل ${n} عالعظم`,
+  paint: (n, _p, s) => (s ? `${s} على الحيطان — ${n}` : `دهان ${n}`),
+  interior: (n) => `داخل شغل ${n}`,
+  crew: (n) => `طاقم ${n}`,
+  home: (n) => `بيت مع ${n}`,
+  space: (n) => `مساحة قبل فرش ${n}`,
+  gym: (n) => `بساط ${n}`,
+  yoga: (n, _p, s) => (s ? `حصة ${s} — ${n}` : `يوغا ${n}`),
+  mat: (n) => `مات ${n}`,
+  coach: (n) => `مدرب ${n}`,
+  weights: (n) => `حديد ${n}`,
+  studio: (n, p) => (p ? `ستوديو ${n} في ${p}` : `ستوديو ${n}`),
+  stretch: (n) => `تمسيد ${n}`,
+  group: (n) => `مجموعة ${n}`,
+  run: (n) => `خطوة برّا مع ${n}`,
+  work: (n) => `مكتب ${n}`,
+  people: (n) => `وجوه ${n}`,
+  screen: (n) => `شاشة ${n}`,
+  office: (n) => `نهار ${n}`,
+  shop: (n) => `محل ${n}`,
+};
+
+function caption(
+  theme: string,
+  facts: BusinessFacts,
+  lang: Lang,
+  index: number,
+  source: NicheImage["source"],
+): string {
   const name = facts.name.value || facts.host;
   const place = facts.place.value;
   const service = facts.services[index % Math.max(facts.services.length, 1)] || null;
+  const ar = (THEME_AR[theme] || THEME_AR.work)(name, place, service, index);
+  const tag =
+    source === "site"
+      ? lang === "he"
+        ? "מהאתר"
+        : lang === "en"
+          ? "from the site"
+          : "من الموقع"
+      : source === "generated"
+        ? lang === "he"
+          ? "נוצר"
+          : lang === "en"
+            ? "generated"
+            : "مولَّدة"
+        : lang === "he"
+          ? "סטוק נישה"
+          : lang === "en"
+            ? "niche stock"
+            : "ستوك المجال";
+  if (lang === "ar") return `${ar} · ${tag}`;
+  if (lang === "he") return `${name} · ${theme} · ${tag}`;
+  return `${name} · ${theme} · ${tag}`;
+}
 
-  const packs: Record<Lang, Record<string, string[]>> = {
-    ar: {
-      reception: [`${name} — مدخل هادي من الموقع`, "جلسة أولى بلا لف ودوران"],
-      chair: [service ? `${name}: ${service} مذكور عندهم` : `${name} — كرسي العلاج`],
-      tools: ["تفاصيل الشغل من صفحة العيادة", `${name} — أدوات الظاهرة بالموقع`],
-      hallway: [place ? `ممر العيادة — ${place}` : "ممر العيادة كما يظهر بالموقع"],
-      care: ["رعاية مكتوبة، مش شعارات فاضي"],
-      team: [`فريق ${name} — من الاسم الظاهر`],
-      consult: ["استشارة من الصفحة، بدون اختراع سعر"],
-      calm: [place ? `هدوء الجلسة في ${place}` : "هدوء الجلسة — من روح الموقع"],
-      light: [`ضوء طبيعي لإعلان ${name}`],
-      desk: [service ? `درس ${service} مع ${name}` : `مكتب الدرس — ${name}`],
-      books: ["كتب الطاولة — مش مخزّن عام بلا عنوان"],
-      classroom: [place ? `حصة قريبة من ${place}` : "حصة واضحة من وصف المركز"],
-      notes: ["دفاتر التحضير — زاوية المذاكرة"],
-      board: [`لوح ${name}`],
-      pair: ["حصة ثنائية من طبيعة الدرس"],
-      write: ["لحظة كتابة الحل"],
-      lecture: [place ? `شرح في ${place}` : "شرح قدام اللوح"],
-      plan: ["خطة أسبوع من الموجود بالموقع"],
-      room: [place ? `صالة ${name} في ${place}` : `صالة ${name}`],
-      coffee: ["فنجان الصبح — من هوية المقهى"],
-      plated: [service ? `طبق ${service}` : "طبق اليوم من روح القائمة"],
-      table: ["طاولة لاثنين — دعوة للجلوس"],
-      street: [place ? `واجهة المحل في ${place}` : "واجهة المحل"],
-      dish: [service ? `${service} كما نحكي عنه بدون سعر مخترع` : "طبق جاهز للتصوير"],
-      cafe: [`ركن القهوة في ${name}`],
-      pastry: ["حلويات الواجهة"],
-      evening: ["سهرة خفيفة — إضاءة المساء"],
-      site: [place ? `ورشة في ${place}` : `ورشة ${name}`],
-      kitchen: [service ? `شغل ${service}` : "مطبخ بعد التشطيب — ستوك مجال"],
-      build: ["عظم الشغل، مش وعود ROAS"],
-      paint: [service ? `${service} — فرشاة على الحيط` : "دهان الحيطان"],
-      interior: [`داخل بيت عميل ${name} (ستوك مجال)`],
-      crew: ["طاقم المقاولة — صورة مجال"],
-      home: ["بيت عم يتجدّد"],
-      space: ["مساحة فاضية قبل الفرش"],
-      gym: [`بساط ${name}`],
-      yoga: [service ? `حصة ${service}` : "حصة يوغا بوتيك"],
-      mat: ["مات على الخشب — ستوديو صغير"],
-      coach: ["مدرب قريب، مش إعلان سلسلة"],
-      weights: ["حديد الخفيف للبوتيك"],
-      studio: [place ? `ستوديو في ${place}` : `ستوديو ${name}`],
-      stretch: ["تمسيد قبل الحصة"],
-      group: ["مجموعة صغيرة"],
-      run: ["خطوة برّا — نفس الاسم"],
-      work: [`مكتب ${name} — صورة عامة لأن التخصص برّا القائمة`],
-      people: [`ناس ${name}`],
-      screen: ["شاشة شغل عامة"],
-      office: ["مكتب نهاري"],
-      shop: ["إضاءة محل عامة"],
-    },
-    he: {
-      reception: [`${name} — לובי שקט`],
-      chair: [service ? `${name}: ${service}` : `כיסא הטיפול של ${name}`],
-      tools: ["פרטים מהאתר, בלי מחיר מומצא"],
-      hallway: [place ? `מסדרון ב${place}` : "מסדרון המרפאה"],
-      care: ["טיפול כמו שכתוב באתר"],
-      team: [`הצוות של ${name}`],
-      consult: ["ייעוץ ראשון — בלי הבטחות ROAS"],
-      calm: ["אווירה רגועה"],
-      light: ["אור רך לקריאייטיב"],
-      desk: [service ? `שיעור ${service}` : `שולחן הלמידה של ${name}`],
-      books: ["ספרים על השולחן"],
-      classroom: [place ? `שיעור ליד ${place}` : "כיתה קטנה"],
-      notes: ["מחברת תרגול"],
-      board: [`הלוח של ${name}`],
-      pair: ["שיעור זוגי"],
-      write: ["רגע כתיבה"],
-      lecture: ["הסבר מול הלוח"],
-      plan: ["תוכנית שבועית מהאתר"],
-      room: [place ? `${name} ב${place}` : `חלל ${name}`],
-      coffee: ["הקפה של הבוקר"],
-      plated: [service ? `מנה: ${service}` : "מנה מהתפריט"],
-      table: ["שולחן לשניים"],
-      street: [place ? `חזית ב${place}` : "חזית העסק"],
-      dish: ["מנה לצילום מודעה"],
-      cafe: [`פינת הקפה ב${name}`],
-      pastry: ["חלת הוויטרינה"],
-      evening: ["תאורת ערב"],
-      site: [place ? `אתר עבודה ב${place}` : `העבודה של ${name}`],
-      kitchen: [service ? `עבודת ${service}` : "מטבח אחרי שיפוץ"],
-      build: ["עבודה אמיתית, בלי הבטחות"],
-      paint: ["צביעת קירות"],
-      interior: ["פנים הבית"],
-      crew: ["צוות השיפוץ"],
-      home: ["בית מתחדש"],
-      space: ["חלל לפני ריהוט"],
-      gym: [`הסטודיו של ${name}`],
-      yoga: [service ? `שיעור ${service}` : "יוגה בוטיק"],
-      mat: ["מזרן על עץ"],
-      coach: ["מאמן קרוב"],
-      weights: ["משקולות לסטודיו קטן"],
-      studio: [place ? `סטודיו ב${place}` : `סטודיו ${name}`],
-      stretch: ["מתיחה לפני השיעור"],
-      group: ["קבוצה קטנה"],
-      run: ["צעד בחוץ"],
-      work: [`משרד ${name} — מחוץ לנישות`],
-      people: [`האנשים של ${name}`],
-      screen: ["מסך עבודה"],
-      office: ["משרד יום"],
-      shop: ["חלל כללי"],
-    },
-    en: {
-      reception: [`${name} — quiet front desk from the site`],
-      chair: [service ? `${name}: ${service}` : `${name} treatment chair`],
-      tools: ["Details taken from the page — no invented price"],
-      hallway: [place ? `Clinic corridor in ${place}` : "Clinic corridor"],
-      care: ["Care as written on the site"],
-      team: [`Team frame for ${name}`],
-      consult: ["First consult — no fake ROAS"],
-      calm: [place ? `Calm room, ${place}` : "Calm treatment light"],
-      light: [`Soft light for ${name}`],
-      desk: [service ? `${service} lesson with ${name}` : `${name} study desk`],
-      books: ["Books on the table"],
-      classroom: [place ? `A class near ${place}` : "Small classroom"],
-      notes: ["Practice notebook"],
-      board: [`${name} board`],
-      pair: ["Two-person session"],
-      write: ["Writing the solution"],
-      lecture: ["Explaining at the board"],
-      plan: ["Weekly plan from the site"],
-      room: [place ? `${name} in ${place}` : `${name} dining room`],
-      coffee: ["Morning cup — café identity"],
-      plated: [service ? `A ${service} plate` : "A plated dish"],
-      table: ["Table for two"],
-      street: [place ? `Storefront in ${place}` : "Storefront"],
-      dish: ["Dish for the ad frame"],
-      cafe: [`Coffee corner at ${name}`],
-      pastry: ["Pastry case"],
-      evening: ["Evening light"],
-      site: [place ? `Job site in ${place}` : `${name} job site`],
-      kitchen: [service ? `${service} work` : "Kitchen after a remodel"],
-      build: ["Real work — no ROAS claims"],
-      paint: ["Walls being painted"],
-      interior: ["Interior after work"],
-      crew: ["Crew on site"],
-      home: ["A home mid-refresh"],
-      space: ["Empty room before furniture"],
-      gym: [`${name} studio floor`],
-      yoga: [service ? `${service} class` : "Boutique yoga"],
-      mat: ["Mat on wood"],
-      coach: ["A nearby coach"],
-      weights: ["Light iron for a boutique room"],
-      studio: [place ? `Studio in ${place}` : `${name} studio`],
-      stretch: ["Stretch before class"],
-      group: ["Small group"],
-      run: ["A step outside"],
-      work: [`${name} workspace — outside our niches`],
-      people: [`People around ${name}`],
-      screen: ["A work screen"],
-      office: ["Daytime office"],
-      shop: ["Generic shop light"],
-    },
+async function tryGenerated(facts: BusinessFacts): Promise<NicheImage[]> {
+  if (!toolsAvailable().imagen) return [];
+  const cfg = gcpConfig();
+  const name = facts.name.value || facts.host;
+  const niche = facts.niche;
+  const prompt = `Photorealistic local-business photo for a ${niche} named "${name}". No text, no prices, no logos invented.`;
+  try {
+    const predicted = await vertexPredict(cfg.imagenModel, {
+      instances: [{ prompt }],
+      parameters: { sampleCount: 1, aspectRatio: "1:1" },
+    });
+    const pred = predicted as { predictions?: Array<{ bytesBase64Encoded?: string }> } | null;
+    const b64 = pred?.predictions?.[0]?.bytesBase64Encoded;
+    if (b64) {
+      return [
+        {
+          id: "gen-1",
+          src: `data:image/png;base64,${b64}`,
+          alt: name,
+          caption: caption("light", facts, "ar", 0, "generated"),
+          source: "generated",
+        },
+      ];
+    }
+    await vertexGenerate({
+      model: cfg.imageModel,
+      grounding: false,
+      prompt: `Describe (do not invent facts) a ${niche} photo for ${name}. Return only the description.`,
+    });
+  } catch {
+    /* optional */
+  }
+  return [];
+}
+
+export async function composeImages(
+  facts: BusinessFacts,
+  lang: Lang,
+  siteImages: string[],
+): Promise<{ images: NicheImage[]; usedImagen: boolean; usedSite: boolean }> {
+  const usedCaptions = new Set<string>();
+  const images: NicheImage[] = [];
+
+  siteImages.slice(0, 6).forEach((src, i) => {
+    let cap = caption(["street", "room", "team", "light", "care", "desk"][i] || "work", facts, lang, i, facts.usedDemo ? "demo" : "site");
+    if (usedCaptions.has(cap)) cap = `${cap} ${i + 1}`;
+    usedCaptions.add(cap);
+    images.push({
+      id: `site-${i}`,
+      src,
+      alt: cap,
+      caption: cap,
+      source: facts.usedDemo ? "demo" : "site",
+    });
+  });
+
+  const generated = await tryGenerated(facts);
+  for (const g of generated) {
+    if (usedCaptions.has(g.caption)) g.caption = `${g.caption} · AI`;
+    usedCaptions.add(g.caption);
+    images.push(g);
+  }
+
+  const pack = STOCK[facts.niche] || STOCK.out_of_niche;
+  pack.forEach((stock, index) => {
+    if (images.length >= 12) return;
+    let cap = caption(stock.theme, facts, lang, index, "stock");
+    if (usedCaptions.has(cap)) cap = `${cap} · ${index + 1}`;
+    usedCaptions.add(cap);
+    images.push({
+      id: stock.id,
+      src: stock.src,
+      alt: cap,
+      caption: cap,
+      source: "stock",
+    });
+  });
+
+  return {
+    images,
+    usedImagen: generated.length > 0,
+    usedSite: siteImages.length > 0,
   };
-
-  const options = packs[lang][stock.theme] || packs[lang].work || [`${name} — ${stock.theme}`];
-  return options[index % options.length];
 }
 
 export function imagesForFacts(facts: BusinessFacts, lang: Lang): NicheImage[] {
   const pack = STOCK[facts.niche] || STOCK.out_of_niche;
   const used = new Set<string>();
   return pack.map((stock, index) => {
-    let caption = captionFor(stock, facts, lang, index);
-    if (used.has(caption)) caption = `${caption} · ${index + 1}`;
-    used.add(caption);
-    return {
-      id: stock.id,
-      src: stock.src,
-      alt: caption,
-      caption,
-    };
+    let cap = caption(stock.theme, facts, lang, index, "stock");
+    if (used.has(cap)) cap = `${cap} · ${index + 1}`;
+    used.add(cap);
+    return { id: stock.id, src: stock.src, alt: cap, caption: cap, source: "stock" as const };
   });
 }

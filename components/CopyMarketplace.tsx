@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { t } from "@/lib/i18n";
 import { fontClass, type Lang } from "@/lib/lang";
-import type { CopyLine } from "@/lib/types";
+import type { CopyKind, CopyLine } from "@/lib/types";
 
 const kindKey = { headline: "headline", hook: "hook", cta: "cta" } as const;
 
@@ -17,14 +18,36 @@ export function CopyMarketplace({
   onToggle: (id: string) => void;
   lang: Lang;
 }) {
+  const [filter, setFilter] = useState<CopyKind | "all">("all");
+  const visible = useMemo(
+    () => (filter === "all" ? lines : lines.filter((l) => l.kind === filter)),
+    [filter, lines],
+  );
+
   return (
     <section className={fontClass(lang)}>
-      <div className="mb-4">
-        <h2 className="text-2xl font-extrabold">{t("marketplace", lang)}</h2>
-        <p className="mt-1 text-khatwa-mute">{t("marketHint", lang)}</p>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-extrabold">{t("marketplace", lang)}</h2>
+          <p className="mt-1 text-khatwa-mute">{t("marketHint", lang)}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(["all", "headline", "hook", "cta"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setFilter(k)}
+              className={`rounded-full px-3 py-1 text-sm font-bold ${
+                filter === k ? "bg-khatwa-green text-white" : "bg-white border border-khatwa-line"
+              }`}
+            >
+              {k === "all" ? t("allKinds", lang) : t(kindKey[k], lang)}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        {lines.map((line) => {
+        {visible.map((line) => {
           const on = selected.has(line.id);
           return (
             <button

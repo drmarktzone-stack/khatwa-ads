@@ -9,9 +9,9 @@ import { defaultSelection, saveScan, saveSelection } from "@/lib/session";
 import type { ScanPayload } from "@/lib/types";
 import { PrimaryCta } from "./PrimaryCta";
 
-export function UrlForm({ lang }: { lang: Lang }) {
+export function UrlForm({ lang, initialUrl = "" }: { lang: Lang; initialUrl?: string }) {
   const router = useRouter();
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(initialUrl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,36 +66,28 @@ export function UrlForm({ lang }: { lang: Lang }) {
             dir="ltr"
             autoComplete="url"
           />
-          <PrimaryCta type="submit" disabled={busy} className="min-h-14 min-w-44">
+          <PrimaryCta type="submit" className="min-h-14 min-w-44">
             {busy ? t("scanning", lang) : t("scan", lang)}
           </PrimaryCta>
         </div>
+        {busy ? (
+          <button
+            type="button"
+            className="mt-3 text-sm font-extrabold text-khatwa-green underline"
+            onClick={() => void runScan(DEMOS[0].url)}
+          >
+            {t("trySample", lang)}
+          </button>
+        ) : null}
         {error ? (
           <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-khatwa-ink">
             <span>{error}</span>
             <PrimaryCta onClick={() => void runScan(DEMOS[0].url)} className="!py-2 !text-sm">
-              {t("samples", lang)}
+              {t("trySample", lang)}
             </PrimaryCta>
           </div>
         ) : null}
       </form>
-
-      <p className="mt-6 text-sm font-semibold text-khatwa-mute">{t("samples", lang)}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {DEMOS.map((demo) => (
-          <button
-            key={demo.slug}
-            type="button"
-            onClick={() => {
-              setUrl(demo.url);
-              void runScan(demo.url);
-            }}
-            className="k-chip hover:border-khatwa-green hover:bg-khatwa-green-soft"
-          >
-            {demo.name}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

@@ -2,16 +2,35 @@
 
 import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/AppFrame";
+import { JourneySteps } from "@/components/JourneySteps";
 import { UrlForm } from "@/components/UrlForm";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
+import { DEMOS } from "@/lib/scan";
+import { defaultSelection, saveScan, saveSelection } from "@/lib/session";
+import type { ScanPayload } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 export function HomeClient() {
   const lang = parseLang(useSearchParams().get("lang"));
+  const router = useRouter();
+
+  async function runDemo(url: string) {
+    const res = await fetch("/api/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, lang }),
+    });
+    const data = (await res.json()) as ScanPayload;
+    saveScan(data);
+    saveSelection(defaultSelection(data));
+    router.push(`/scan?lang=${lang}`);
+  }
 
   return (
     <AppFrame lang={lang}>
-      <section className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+      <JourneySteps lang={lang} step={1} />
+      <section className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <p className="mb-3 inline-flex rounded-full bg-khatwa-yellow px-3 py-1 text-sm font-extrabold">
             {t("brand", lang)}
@@ -32,11 +51,24 @@ export function HomeClient() {
 
       <section className="mt-12">
         <h2 className="text-xl font-extrabold">{t("nichesTitle", lang)}</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {[t("nClinic", lang), t("nTutor", lang), t("nFood", lang), t("nReno", lang), t("nFit", lang)].map((label) => (
-            <div key={label} className="k-card px-4 py-5 text-center font-bold">
-              {label}
-            </div>
+        <p className="mt-1 text-sm text-khatwa-mute">{t("samples", lang)}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {DEMOS.filter((d) => d.niche !== "out_of_niche").map((demo) => (
+            <button
+              key={demo.slug}
+              type="button"
+              onClick={() => void runDemo(demo.url)}
+              className="k-card overflow-hidden text-start transition hover:-translate-y-0.5"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={demo.images[0]} alt={demo.name} className="h-28 w-full object-cover" />
+              <div className="p-4">
+                <p className="font-extrabold">{demo.name}</p>
+                <p className="mt-1 text-sm text-khatwa-mute">
+                  {demo.place} · {demo.services.join(lang === "ar" ? "، " : ", ")}
+                </p>
+              </div>
+            </button>
           ))}
         </div>
       </section>

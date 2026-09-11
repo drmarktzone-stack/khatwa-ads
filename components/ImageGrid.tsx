@@ -4,6 +4,12 @@ import { t } from "@/lib/i18n";
 import { fontClass, type Lang } from "@/lib/lang";
 import type { NicheImage } from "@/lib/types";
 
+function sourceLabel(source: NicheImage["source"], lang: Lang): string {
+  if (source === "site" || source === "demo") return t("fromSiteImg", lang);
+  if (source === "generated") return t("genImg", lang);
+  return t("stockImg", lang);
+}
+
 export function ImageGrid({
   images,
   selected,
@@ -34,7 +40,12 @@ export function ImageGrid({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img.src} alt={img.alt} className="h-44 w-full object-cover" />
               <div className="flex items-start justify-between gap-2 p-3">
-                <p className="text-sm font-semibold leading-snug">{img.caption}</p>
+                <div>
+                  <p className="text-[11px] font-extrabold uppercase tracking-wide text-khatwa-green">
+                    {sourceLabel(img.source, lang)}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold leading-snug">{img.caption}</p>
+                </div>
                 <span
                   className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-black ${
                     on ? "bg-khatwa-green text-white" : "bg-khatwa-green-soft text-khatwa-green"

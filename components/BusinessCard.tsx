@@ -36,6 +36,7 @@ function Row({
 
 export function BusinessCard({ payload, lang }: { payload: ScanPayload; lang: Lang }) {
   const facts = payload.facts;
+  const phones = facts.phones.length ? facts.phones.join(" · ") : facts.phone.value;
   return (
     <section className={`k-card p-5 sm:p-6 ${fontClass(lang)}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -53,8 +54,10 @@ export function BusinessCard({ payload, lang }: { payload: ScanPayload; lang: La
       <p className="mt-4 rounded-2xl bg-khatwa-yellow-soft px-4 py-3 text-sm font-medium">{payload.notice}</p>
       <div className="mt-4 grid gap-3">
         <Row label={t("name", lang)} value={facts.name.value} level={facts.name.evidence} lang={lang} />
-        <Row label={t("phone", lang)} value={facts.phone.value} level={facts.phone.evidence} lang={lang} />
+        <Row label={t("phone", lang)} value={phones} level={facts.phone.evidence} lang={lang} />
+        <Row label={t("whatsapp", lang)} value={facts.whatsapp.value} level={facts.whatsapp.evidence} lang={lang} />
         <Row label={t("place", lang)} value={facts.place.value} level={facts.place.evidence} lang={lang} />
+        <Row label={t("hours", lang)} value={facts.hours.value} level={facts.hours.evidence} lang={lang} />
         <Row
           label={t("services", lang)}
           value={facts.services.length ? facts.services.join(lang === "ar" ? "، " : ", ") : null}
@@ -63,9 +66,6 @@ export function BusinessCard({ payload, lang }: { payload: ScanPayload; lang: La
         />
       </div>
       <p className="mt-4 text-sm text-khatwa-mute">{t("evidenceNote", lang)}</p>
-      <p className="mt-2 text-xs font-semibold text-khatwa-green">
-        {payload.usedGemini ? t("geminiOn", lang) : t("geminiOff", lang)}
-      </p>
     </section>
   );
 }

@@ -1,20 +1,8 @@
+import { assertDistinct, dedupeLines } from "./guards";
 import type { BusinessFacts, CopyKind, CopyLine, Lang, Niche } from "./types";
 
 function nameOf(facts: BusinessFacts): string {
   return facts.name.value || facts.host;
-}
-
-function placeOf(facts: BusinessFacts, lang: Lang): string | null {
-  return facts.place.value;
-}
-
-function serviceOf(facts: BusinessFacts, i: number): string | null {
-  if (!facts.services.length) return null;
-  return facts.services[i % facts.services.length];
-}
-
-function phoneOf(facts: BusinessFacts): string | null {
-  return facts.phone.value;
 }
 
 interface Seed {
@@ -26,145 +14,166 @@ interface Seed {
   ctaAr: string;
   ctaHe: string;
   ctaEn: string;
+  need?: "phone" | "place" | "hours" | "service";
 }
 
-function fill(template: string, facts: BusinessFacts, lang: Lang, index: number): string {
-  const name = nameOf(facts);
-  const place = placeOf(facts, lang);
-  const service = serviceOf(facts, index);
-  const phone = phoneOf(facts);
-  const placeBit =
-    place ||
-    (lang === "ar" ? "من الموقع" : lang === "he" ? "מהאתר" : "from the site");
-  const serviceBit =
-    service ||
-    (lang === "ar" ? "اللي مكتوب عندهم" : lang === "he" ? "מה שכתוב אצלם" : "what the page lists");
-  const phoneBit =
-    phone ||
-    (lang === "ar" ? "من صفحة التواصل" : lang === "he" ? "מדף יצירת הקשר" : "via the contact page");
+function pick(facts: BusinessFacts, i: number) {
+  return {
+    name: nameOf(facts),
+    place: facts.place.value,
+    service: facts.services.length ? facts.services[i % facts.services.length] : null,
+    phone: facts.phone.value,
+    hours: facts.hours.value,
+    wa: facts.whatsapp.value,
+  };
+}
 
+function fill(template: string, facts: BusinessFacts, index: number): string {
+  const p = pick(facts, index);
   return template
-    .replaceAll("{name}", name)
-    .replaceAll("{place}", placeBit)
-    .replaceAll("{service}", serviceBit)
-    .replaceAll("{phone}", phoneBit);
+    .replaceAll("{name}", p.name)
+    .replaceAll("{place}", p.place || "")
+    .replaceAll("{service}", p.service || "")
+    .replaceAll("{phone}", p.phone || "")
+    .replaceAll("{hours}", p.hours || "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([،,.!?])/g, "$1")
+    .trim();
 }
 
-function seedsFor(niche: Niche): Seed[] {
-  const commonOpeners: Seed[] = [
+function commonSeeds(): Seed[] {
+  return [
     {
       kind: "headline",
-      angle: "name-trust",
-      ar: "{name}: كلام الموقع، مش شعارات فاضي",
-      he: "{name}: מה שכתוב באתר, בלי סיסמאות",
-      en: "{name}: what’s on the site, not empty slogans",
-      ctaAr: "افتح صفحة المحل",
-      ctaHe: "פתחו את האתר",
-      ctaEn: "Open the site",
+      angle: "name-place",
+      need: "place",
+      ar: "{name} في {place}",
+      he: "{name} ב{place}",
+      en: "{name} in {place}",
+      ctaAr: "زور الصفحة",
+      ctaHe: "בקרו בעמוד",
+      ctaEn: "Visit the page",
     },
     {
       kind: "headline",
-      angle: "place-near",
-      ar: "قريب من {place} — {name}",
-      he: "קרוב ל{place} — {name}",
-      en: "Near {place} — {name}",
-      ctaAr: "شوف وين المحل",
-      ctaHe: "בדקו איפה זה",
-      ctaEn: "See the location",
+      angle: "name-only",
+      ar: "هاي {name}",
+      he: "זה {name}",
+      en: "This is {name}",
+      ctaAr: "ادخل شوف",
+      ctaHe: "כנסו לראות",
+      ctaEn: "Come see",
     },
     {
       kind: "headline",
-      angle: "service-led",
+      angle: "service-name",
+      need: "service",
       ar: "{service} عند {name}",
       he: "{service} אצל {name}",
       en: "{service} at {name}",
-      ctaAr: "اقرأ الخدمات",
-      ctaHe: "קראו את השירותים",
-      ctaEn: "Read the services",
+      ctaAr: "شوف الخدمة",
+      ctaHe: "ראו את השירות",
+      ctaEn: "See the service",
     },
     {
       kind: "headline",
-      angle: "honest",
-      ar: "ما منخترعلك سعر ولا رقم — بس {name}",
-      he: "בלי מחיר מומצא — רק {name}",
-      en: "No invented price — just {name}",
-      ctaAr: "اقرأ اللي مكتوب",
-      ctaHe: "קראו מה שכתוב",
-      ctaEn: "Read what’s written",
+      angle: "near-you",
+      need: "place",
+      ar: "قريب عليك في {place}: {name}",
+      he: "קרוב אליכם ב{place}: {name}",
+      en: "Near you in {place}: {name}",
+      ctaAr: "شوف وين",
+      ctaHe: "בדקו איפה",
+      ctaEn: "See where",
     },
     {
       kind: "headline",
       angle: "today",
-      ar: "بدك تخلّص موضوعك اليوم مع {name}؟",
+      ar: "بدك تخلّصها اليوم مع {name}؟",
       he: "רוצים לסגור את זה היום עם {name}?",
-      en: "Want this settled today with {name}?",
-      ctaAr: "يلا من الموقع",
-      ctaHe: "יאללה מהאתר",
-      ctaEn: "Go from the site",
+      en: "Want this done today with {name}?",
+      ctaAr: "يلا من الصفحة",
+      ctaHe: "יאללה מהעמוד",
+      ctaEn: "Go from the page",
     },
     {
       kind: "headline",
-      angle: "question",
-      ar: "وينك عن {name}؟",
-      he: "איפה אתם מ{name}?",
-      en: "Where have you been, {name} is here",
-      ctaAr: "ادخل وشوف",
-      ctaHe: "כנסו לראות",
-      ctaEn: "Come take a look",
-    },
-    {
-      kind: "headline",
-      angle: "community",
-      ar: "محل ناس {place}: {name}",
-      he: "עסק של {place}: {name}",
-      en: "A {place} neighborhood name: {name}",
-      ctaAr: "احكي مع ناس المحل",
-      ctaHe: "דברו עם המקום",
-      ctaEn: "Talk to the business",
-    },
-    {
-      kind: "headline",
-      angle: "first-visit",
-      ar: "أول زيارة لـ {name} — بلا لف",
-      he: "ביקור ראשון ב{name} — בלי סיבובים",
-      en: "First visit to {name} — no runaround",
+      angle: "first",
+      ar: "أول زيارة لـ {name} — على مهلك",
+      he: "ביקור ראשון אצל {name} — בנחת",
+      en: "First visit to {name} — at your pace",
       ctaAr: "احجز من الصفحة",
       ctaHe: "קבעו מהעמוד",
       ctaEn: "Book from the page",
     },
     {
       kind: "headline",
-      angle: "clear",
-      ar: "{name} بوضحلك {service} زي ما هو",
-      he: "{name} מסביר/ה את {service} כמו שזה",
-      en: "{name} spells out {service} as written",
+      angle: "hours",
+      need: "hours",
+      ar: "{name} فاتح {hours}",
+      he: "{name} פתוח {hours}",
+      en: "{name} is open {hours}",
+      ctaAr: "لحّق الدوام",
+      ctaHe: "תספיקו לשעות",
+      ctaEn: "Catch the hours",
+    },
+    {
+      kind: "headline",
+      angle: "question",
+      ar: "وينك عن {name}؟",
+      he: "איפה הייתם מ{name}?",
+      en: "Where have you been — {name} is here",
+      ctaAr: "تعالا شوف",
+      ctaHe: "בואו תראו",
+      ctaEn: "Come have a look",
+    },
+    {
+      kind: "headline",
+      angle: "family",
+      need: "place",
+      ar: "خد أهلك على {name} — {place}",
+      he: "קחו את המשפחה ל{name} — {place}",
+      en: "Bring the family to {name} — {place}",
+      ctaAr: "احكي مع العيلة",
+      ctaHe: "דברו בבית",
+      ctaEn: "Talk at home",
+    },
+    {
+      kind: "headline",
+      angle: "usp-service",
+      need: "service",
+      ar: "إذا {service} همّك — {name} هون",
+      he: "אם {service} רלוונטי — {name} כאן",
+      en: "If {service} is what you need — {name} is here",
       ctaAr: "كمّل قراءة",
       ctaHe: "המשיכו לקרוא",
       ctaEn: "Keep reading",
     },
     {
-      kind: "headline",
-      angle: "no-roas",
-      ar: "إعلان {name} — بدون حكايا ROAS",
-      he: "מודעת {name} — בלי סיפורי ROAS",
-      en: "{name} ad — no ROAS fairy tales",
-      ctaAr: "خد النص زي ما هو",
-      ctaHe: "קחו את הטקסט כמו שהוא",
-      ctaEn: "Take the line as-is",
+      kind: "hook",
+      angle: "pain",
+      ar: "زهقت تدور؟ {name} قدامك.",
+      he: "נמאס לחפש? {name} מולכם.",
+      en: "Tired of hunting? {name} is right here.",
+      ctaAr: "اسأل من الصفحة",
+      ctaHe: "שאלו מהעמוד",
+      ctaEn: "Ask on the page",
     },
     {
       kind: "hook",
-      angle: "pain-q",
-      ar: "زهقت تدور؟ {name} مكتوب قدامك.",
-      he: "נמאס לחפש? {name} כתוב מולכם.",
-      en: "Tired of hunting? {name} is on the page.",
-      ctaAr: "اسأل من الموقع",
-      ctaHe: "שאלו מהאתר",
-      ctaEn: "Ask from the site",
+      angle: "whatsapp",
+      need: "phone",
+      ar: "ابعت واتساب لـ {name}: {phone}",
+      he: "שלחו וואטסאפ ל{name}: {phone}",
+      en: "WhatsApp {name}: {phone}",
+      ctaAr: "ابعت هسا",
+      ctaHe: "שלחו עכשיו",
+      ctaEn: "Message now",
     },
     {
       kind: "hook",
       angle: "neighbor",
+      need: "place",
       ar: "جارك في {place} بمرّق على {name}.",
       he: "השכן ב{place} כבר מכיר את {name}.",
       en: "Your neighbor in {place} already knows {name}.",
@@ -174,27 +183,19 @@ function seedsFor(niche: Niche): Seed[] {
     },
     {
       kind: "hook",
-      angle: "whatsapp-easy",
-      ar: "ما في فورم تيه: احكي لـ {name} على {phone}.",
-      he: "בלי טפסים: דברו עם {name} ב{phone}.",
-      en: "No scavenger form: reach {name} at {phone}.",
-      ctaAr: "ابعت رسالة هسا",
-      ctaHe: "שלחו הודעה עכשיו",
-      ctaEn: "Send a message now",
-    },
-    {
-      kind: "hook",
-      angle: "who-for",
-      ar: "إذا بتدور {service} — هاي صفحة {name}.",
-      he: "אם אתם מחפשים {service} — זה העמוד של {name}.",
-      en: "If you need {service}, this is {name}’s page.",
+      angle: "who",
+      need: "service",
+      ar: "إذا بتدور {service} — صفحة {name} إلك.",
+      he: "אם אתם מחפשים {service} — העמוד של {name} בשבילכם.",
+      en: "Looking for {service}? {name}’s page is for you.",
       ctaAr: "اختار الخدمة",
       ctaHe: "בחרו שירות",
       ctaEn: "Pick a service",
     },
     {
       kind: "hook",
-      angle: "this-week",
+      angle: "week",
+      need: "place",
       ar: "هالأسبوع فيك تمرّ على {name} في {place}.",
       he: "השבוע אפשר לעבור ב{name} ב{place}.",
       en: "This week you can stop by {name} in {place}.",
@@ -204,27 +205,19 @@ function seedsFor(niche: Niche): Seed[] {
     },
     {
       kind: "hook",
-      angle: "from-site",
-      ar: "اللي هون متلوح من موقع {name} — مش مخترع.",
-      he: "השורות האלה מהאתר של {name} — לא המצאה.",
-      en: "These lines come from {name}’s site — not invented.",
-      ctaAr: "رجّع للمصدر",
-      ctaHe: "חזרו למקור",
-      ctaEn: "Back to the source",
+      angle: "hours-hook",
+      need: "hours",
+      ar: "دوام {name}: {hours}.",
+      he: "שעות {name}: {hours}.",
+      en: "{name} hours: {hours}.",
+      ctaAr: "راجع الدوام",
+      ctaHe: "בדקו שעות",
+      ctaEn: "Check hours",
     },
     {
       kind: "hook",
-      angle: "family",
-      ar: "خذ أهلك على {name} إذا {service} يعنيكم.",
-      he: "קחו את המשפחה ל{name} אם {service} רלוונטי.",
-      en: "Bring family to {name} if {service} matters.",
-      ctaAr: "احكي مع العيلة",
-      ctaHe: "דברו עם המשפחה",
-      ctaEn: "Talk it over at home",
-    },
-    {
-      kind: "hook",
-      angle: "scroll-stop",
+      angle: "scroll",
+      need: "place",
       ar: "وقّف السكرول: {name} في {place}.",
       he: "עצרו את הגלילה: {name} ב{place}.",
       en: "Stop the scroll: {name} in {place}.",
@@ -232,10 +225,45 @@ function seedsFor(niche: Niche): Seed[] {
       ctaHe: "המשיכו למודעה",
       ctaEn: "Continue to the ad",
     },
+    {
+      kind: "hook",
+      angle: "call-easy",
+      need: "phone",
+      ar: "اتّصل على {phone} واسأل {name}.",
+      he: "התקשרו ל{phone} ושאלו את {name}.",
+      en: "Call {phone} and ask {name}.",
+      ctaAr: "اتّصل هسا",
+      ctaHe: "התקשרו עכשיו",
+      ctaEn: "Call now",
+    },
   ];
+}
 
-  const nicheExtra: Record<Niche, Seed[]> = {
+function nicheSeeds(niche: Niche): Seed[] {
+  const extra: Record<Niche, Seed[]> = {
     clinic: [
+      {
+        kind: "headline",
+        angle: "calm-clinic",
+        need: "place",
+        ar: "عيادة هادية في {place}: {name}",
+        he: "מרפאה רגועה ב{place}: {name}",
+        en: "A calmer clinic in {place}: {name}",
+        ctaAr: "شوف العيادة",
+        ctaHe: "ראו את המרפאה",
+        ctaEn: "See the clinic",
+      },
+      {
+        kind: "hook",
+        angle: "clinic-pain",
+        need: "service",
+        ar: "موجوع؟ {name} ذاكر {service}.",
+        he: "כואב? {name} מציין {service}.",
+        en: "Hurting? {name} lists {service}.",
+        ctaAr: "اقرأ العلاج",
+        ctaHe: "קראו את הטיפול",
+        ctaEn: "Read the care",
+      },
       {
         kind: "cta",
         angle: "book",
@@ -249,27 +277,29 @@ function seedsFor(niche: Niche): Seed[] {
       {
         kind: "cta",
         angle: "call",
-        ar: "اتّصل على {phone} واسأل عن أقرب وقت",
-        he: "התקשרו ל{phone} ושאלו מתי פנוי",
-        en: "Call {phone} and ask the next opening",
-        ctaAr: "اتّصل هسا",
-        ctaHe: "התקשרו עכשיו",
-        ctaEn: "Call now",
+        need: "phone",
+        ar: "اتّصل {phone} واسأل أقرب وقت",
+        he: "התקשרו {phone} לשעה פנויה",
+        en: "Call {phone} for the next opening",
+        ctaAr: "اتّصل للموعد",
+        ctaHe: "התקשרו לתור",
+        ctaEn: "Call for a slot",
       },
       {
         kind: "cta",
         angle: "consult",
-        ar: "اطلب استشارة مكتوبة — بلا سعر مخترع",
-        he: "בקשו ייעוץ כתוב — בלי מחיר מומצא",
-        en: "Ask for a written consult — no invented fee",
+        ar: "اطلب استشارة من {name}",
+        he: "בקשו ייעוץ מ{name}",
+        en: "Ask {name} for a consult",
         ctaAr: "اطلب استشارة",
         ctaHe: "בקשו ייעוץ",
         ctaEn: "Request a consult",
       },
       {
         kind: "cta",
-        angle: "maps",
-        ar: "افتح الخريطة لمحل {name} في {place}",
+        angle: "map",
+        need: "place",
+        ar: "افتح الخريطة لـ {name} في {place}",
         he: "פתחו מפה ל{name} ב{place}",
         en: "Open the map for {name} in {place}",
         ctaAr: "افتح الخريطة",
@@ -278,52 +308,56 @@ function seedsFor(niche: Niche): Seed[] {
       },
       {
         kind: "cta",
-        angle: "whatsapp",
-        ar: "ابعت واتساب لـ {name} على {phone}",
-        he: "שלחו וואטסאפ ל{name} ב{phone}",
-        en: "WhatsApp {name} at {phone}",
+        angle: "wa",
+        need: "phone",
+        ar: "واتساب العيادة {phone}",
+        he: "וואטסאפ למרפאה {phone}",
+        en: "WhatsApp the clinic {phone}",
         ctaAr: "واتساب العيادة",
         ctaHe: "וואטסאפ למרפאה",
-        ctaEn: "WhatsApp the clinic",
+        ctaEn: "WhatsApp clinic",
       },
       {
         kind: "cta",
-        angle: "smile",
+        angle: "ask-service",
+        need: "service",
         ar: "اسأل عن {service} قبل ما تقرّر",
         he: "שאלו על {service} לפני שמחליטים",
         en: "Ask about {service} before you decide",
         ctaAr: "اسأل قبل القرار",
-        ctaHe: "שאלו לפני ההחלטה",
-        ctaEn: "Ask before deciding",
-      },
-      {
-        kind: "hook",
-        angle: "clinic-pain",
-        ar: "سنانك موجعاك؟ صفحة {name} فيها {service}.",
-        he: "כואב? בעמוד של {name} מופיע {service}.",
-        en: "In pain? {name}’s page lists {service}.",
-        ctaAr: "اقرأ العلاج المذكور",
-        ctaHe: "קראו את הטיפול",
-        ctaEn: "Read the listed care",
-      },
-      {
-        kind: "headline",
-        angle: "clinic-calm",
-        ar: "عيادة هادية في {place}: {name}",
-        he: "מרפאה רגועה ב{place}: {name}",
-        en: "A calmer clinic in {place}: {name}",
-        ctaAr: "شوف العيادة",
-        ctaHe: "ראו את המרפאה",
-        ctaEn: "See the clinic",
+        ctaHe: "שאלו קודם",
+        ctaEn: "Ask first",
       },
     ],
     tutoring: [
       {
+        kind: "headline",
+        angle: "pace",
+        need: "service",
+        ar: "شرح {service} على مهلك — {name}",
+        he: "הסבר {service} בקצב שלכם — {name}",
+        en: "{service} at your pace — {name}",
+        ctaAr: "شوف أسلوبهم",
+        ctaHe: "ראו סגנון",
+        ctaEn: "See their style",
+      },
+      {
+        kind: "hook",
+        angle: "exam",
+        need: "service",
+        ar: "قبل الامتحان: {service} مع {name}.",
+        he: "לפני המבחן: {service} עם {name}.",
+        en: "Before the exam: {service} with {name}.",
+        ctaAr: "رتّب الحصة",
+        ctaHe: "סדרו שיעור",
+        ctaEn: "Set the lesson",
+      },
+      {
         kind: "cta",
         angle: "book",
-        ar: "احجز حصة تجريبية من صفحة {name}",
-        he: "קבעו שיעור ניסיון מעמוד {name}",
-        en: "Book a trial lesson on {name}’s page",
+        ar: "احجز حصة من صفحة {name}",
+        he: "קבעו שיעור בעמוד {name}",
+        en: "Book a lesson on {name}’s page",
         ctaAr: "احجز حصة",
         ctaHe: "קבעו שיעור",
         ctaEn: "Book a lesson",
@@ -331,9 +365,10 @@ function seedsFor(niche: Niche): Seed[] {
       {
         kind: "cta",
         angle: "call",
-        ar: "اتّصل {phone} واسأل عن {service}",
-        he: "התקשרו {phone} ושאלו על {service}",
-        en: "Call {phone} about {service}",
+        need: "phone",
+        ar: "اتّصل {phone} واسأل عن الحصص",
+        he: "התקשרו {phone} על שיעורים",
+        en: "Call {phone} about lessons",
         ctaAr: "اسأل عن الحصص",
         ctaHe: "שאלו על שיעורים",
         ctaEn: "Ask about lessons",
@@ -350,126 +385,39 @@ function seedsFor(niche: Niche): Seed[] {
       },
       {
         kind: "cta",
-        angle: "maps",
-        ar: "آدي العنوان في {place}",
+        angle: "map",
+        need: "place",
+        ar: "العنوان في {place}",
         he: "הכתובת ב{place}",
-        en: "Here’s the {place} address",
+        en: "The address in {place}",
         ctaAr: "خد الاتجاه",
         ctaHe: "קחו ניווט",
         ctaEn: "Get directions",
       },
       {
         kind: "cta",
-        angle: "whatsapp",
-        ar: "واتساب للمدرس: {phone}",
-        he: "וואטסאפ למורה: {phone}",
-        en: "WhatsApp the tutor: {phone}",
+        angle: "wa",
+        need: "phone",
+        ar: "واتساب المدرس {phone}",
+        he: "וואטסאפ למורה {phone}",
+        en: "WhatsApp the tutor {phone}",
         ctaAr: "واتساب الدرس",
         ctaHe: "וואטסאפ לשיעור",
-        ctaEn: "WhatsApp the tutor",
+        ctaEn: "WhatsApp tutor",
       },
       {
         kind: "cta",
-        angle: "parent",
-        ar: "ابعِت اسم المادة لـ {name}",
-        he: "שלחו את המקצוע ל{name}",
-        en: "Send the subject to {name}",
+        angle: "subject",
+        need: "service",
+        ar: "ابعِت إنك بدك {service}",
+        he: "כתבו שאתם צריכים {service}",
+        en: "Write that you need {service}",
         ctaAr: "ابعت المادة",
         ctaHe: "שלחו מקצוע",
         ctaEn: "Send the subject",
       },
-      {
-        kind: "hook",
-        angle: "exam",
-        ar: "قبل الامتحان: {service} مع {name}.",
-        he: "לפני המבחן: {service} עם {name}.",
-        en: "Before the exam: {service} with {name}.",
-        ctaAr: "رتّب الحصة",
-        ctaHe: "סדרו שיעור",
-        ctaEn: "Set the lesson",
-      },
-      {
-        kind: "headline",
-        angle: "tutor-clear",
-        ar: "شرح {service} على مهلك — {name}",
-        he: "הסבר של {service} בקצב שלכם — {name}",
-        en: "{service} explained at your pace — {name}",
-        ctaAr: "شوف أسلوبهم",
-        ctaHe: "ראו את הסגנון",
-        ctaEn: "See their style",
-      },
     ],
     restaurant: [
-      {
-        kind: "cta",
-        angle: "book",
-        ar: "احجز طاولة من صفحة {name}",
-        he: "הזמינו שולחן בעמוד {name}",
-        en: "Reserve a table on {name}’s page",
-        ctaAr: "احجز طاولة",
-        ctaHe: "הזמינו שולחן",
-        ctaEn: "Reserve a table",
-      },
-      {
-        kind: "cta",
-        angle: "call",
-        ar: "اتّصل {phone} واسأل شو فاتح",
-        he: "התקשרו {phone} ושאלו מה פתוח",
-        en: "Call {phone} and ask what’s open",
-        ctaAr: "اسأل الدوام",
-        ctaHe: "שאלו שעות",
-        ctaEn: "Ask the hours",
-      },
-      {
-        kind: "cta",
-        angle: "menu",
-        ar: "افتح قائمة {service} عند {name}",
-        he: "פתחו את {service} אצל {name}",
-        en: "Open the {service} list at {name}",
-        ctaAr: "شوف القائمة",
-        ctaHe: "ראו תפריט",
-        ctaEn: "See the menu",
-      },
-      {
-        kind: "cta",
-        angle: "maps",
-        ar: "اتجه على {name} في {place}",
-        he: "נווטו ל{name} ב{place}",
-        en: "Head to {name} in {place}",
-        ctaAr: "خذني هناك",
-        ctaHe: "קחו אותי לשם",
-        ctaEn: "Take me there",
-      },
-      {
-        kind: "cta",
-        angle: "whatsapp",
-        ar: "واتساب للمطعم: {phone}",
-        he: "וואטסאפ למקום: {phone}",
-        en: "WhatsApp the restaurant: {phone}",
-        ctaAr: "اطلب بالواتساب",
-        ctaHe: "הזמינו בוואטסאפ",
-        ctaEn: "Order on WhatsApp",
-      },
-      {
-        kind: "cta",
-        angle: "tonight",
-        ar: "مرّ الليلة إذا كنت بـ {place}",
-        he: "עברו הערב אם אתם ב{place}",
-        en: "Stop by tonight if you’re in {place}",
-        ctaAr: "مرّ الليلة",
-        ctaHe: "עברו הערב",
-        ctaEn: "Stop by tonight",
-      },
-      {
-        kind: "hook",
-        angle: "craving",
-        ar: "جاعان على {service}؟ {name} بـ {place}.",
-        he: "בא לכם {service}? {name} ב{place}.",
-        en: "Craving {service}? {name} in {place}.",
-        ctaAr: "اطلب من الصفحة",
-        ctaHe: "הזמינו מהעמוד",
-        ctaEn: "Order from the page",
-      },
       {
         kind: "headline",
         angle: "table",
@@ -480,14 +428,112 @@ function seedsFor(niche: Niche): Seed[] {
         ctaHe: "הזמינו לפני היציאה",
         ctaEn: "Reserve before you go",
       },
-    ],
-    renovation: [
+      {
+        kind: "hook",
+        angle: "craving",
+        need: "service",
+        ar: "جاعان على {service}؟ {name} بيستناك.",
+        he: "בא לכם {service}? {name} מחכה.",
+        en: "Craving {service}? {name} is waiting.",
+        ctaAr: "اطلب من الصفحة",
+        ctaHe: "הזמינו מהעמוד",
+        ctaEn: "Order from the page",
+      },
       {
         kind: "cta",
         angle: "book",
-        ar: "اطلب كشف بيت من صفحة {name}",
-        he: "בקשו ביקור בית מעמוד {name}",
-        en: "Request a house visit on {name}’s page",
+        ar: "احجز طاولة عند {name}",
+        he: "הזמינו שולחן אצל {name}",
+        en: "Reserve a table at {name}",
+        ctaAr: "احجز طاولة",
+        ctaHe: "הזמינו שולחן",
+        ctaEn: "Reserve a table",
+      },
+      {
+        kind: "cta",
+        angle: "call",
+        need: "phone",
+        ar: "اتّصل {phone} واسأل شو فاتح",
+        he: "התקשרו {phone} מה פתוח",
+        en: "Call {phone} and ask what’s open",
+        ctaAr: "اسأل الدوام",
+        ctaHe: "שאלו שעות",
+        ctaEn: "Ask the hours",
+      },
+      {
+        kind: "cta",
+        angle: "menu",
+        need: "service",
+        ar: "شوف {service} عند {name}",
+        he: "ראו {service} אצל {name}",
+        en: "See {service} at {name}",
+        ctaAr: "شوف القائمة",
+        ctaHe: "ראו תפריט",
+        ctaEn: "See the menu",
+      },
+      {
+        kind: "cta",
+        angle: "map",
+        need: "place",
+        ar: "اتجه على {name} في {place}",
+        he: "נווטו ל{name} ב{place}",
+        en: "Head to {name} in {place}",
+        ctaAr: "خذني هناك",
+        ctaHe: "קחו אותי לשם",
+        ctaEn: "Take me there",
+      },
+      {
+        kind: "cta",
+        angle: "wa",
+        need: "phone",
+        ar: "واتساب المطعم {phone}",
+        he: "וואטסאפ למקום {phone}",
+        en: "WhatsApp {name} {phone}",
+        ctaAr: "اطلب بالواتساب",
+        ctaHe: "הזמינו בוואטסאפ",
+        ctaEn: "Order on WhatsApp",
+      },
+      {
+        kind: "cta",
+        angle: "tonight",
+        need: "place",
+        ar: "مرّ الليلة إذا كنت بـ {place}",
+        he: "עברו הערב אם אתם ב{place}",
+        en: "Stop by tonight if you’re in {place}",
+        ctaAr: "مرّ الليلة",
+        ctaHe: "עברו הערב",
+        ctaEn: "Stop by tonight",
+      },
+    ],
+    renovation: [
+      {
+        kind: "headline",
+        angle: "home",
+        need: "place",
+        ar: "بيت في {place} عم يتجدّد مع {name}",
+        he: "בית ב{place} מתחדש עם {name}",
+        en: "A home in {place} refreshing with {name}",
+        ctaAr: "شوف شغلهم",
+        ctaHe: "ראו את העבודה",
+        ctaEn: "See the work",
+      },
+      {
+        kind: "hook",
+        angle: "wall",
+        need: "service",
+        ar: "الحيط بده {service}؟ اسأل {name}.",
+        he: "הקיר צריך {service}? שאלו את {name}.",
+        en: "Need {service} on the wall? Ask {name}.",
+        ctaAr: "اسأل المقاول",
+        ctaHe: "שאלו את הקבלן",
+        ctaEn: "Ask the contractor",
+      },
+      {
+        kind: "cta",
+        angle: "book",
+        ar: "اطلب كشف بيت من {name}",
+        he: "בקשו ביקור בית מ{name}",
+        en: "Request a house visit from {name}",
         ctaAr: "اطلب كشف",
         ctaHe: "בקשו ביקור",
         ctaEn: "Request a visit",
@@ -495,11 +541,12 @@ function seedsFor(niche: Niche): Seed[] {
       {
         kind: "cta",
         angle: "call",
+        need: "phone",
         ar: "اتّصل {phone} ووصف الشغل",
         he: "התקשרו {phone} ותארו את העבודה",
         en: "Call {phone} and describe the job",
         ctaAr: "وصف الشغل",
-        ctaHe: "תארו את העבודה",
+        ctaHe: "תארו עבודה",
         ctaEn: "Describe the job",
       },
       {
@@ -507,14 +554,15 @@ function seedsFor(niche: Niche): Seed[] {
         angle: "photos",
         ar: "ابعِت صور الزاوية لـ {name}",
         he: "שלחו תמונות לפינה ל{name}",
-        en: "Send photos of the room to {name}",
+        en: "Send room photos to {name}",
         ctaAr: "ابعت صور",
         ctaHe: "שלחו תמונות",
         ctaEn: "Send photos",
       },
       {
         kind: "cta",
-        angle: "maps",
+        angle: "map",
+        need: "place",
         ar: "المقاول في {place}: {name}",
         he: "הקבלן ב{place}: {name}",
         en: "The contractor in {place}: {name}",
@@ -524,7 +572,8 @@ function seedsFor(niche: Niche): Seed[] {
       },
       {
         kind: "cta",
-        angle: "whatsapp",
+        angle: "wa",
+        need: "phone",
         ar: "واتساب المقاول {phone}",
         he: "וואטסאפ לקבלן {phone}",
         en: "WhatsApp the contractor {phone}",
@@ -535,41 +584,44 @@ function seedsFor(niche: Niche): Seed[] {
       {
         kind: "cta",
         angle: "scope",
-        ar: "اسأل إذا بعملوا {service}",
-        he: "שאלו אם הם עושים {service}",
-        en: "Ask if they do {service}",
+        need: "service",
+        ar: "أكّد إذا بعملوا {service}",
+        he: "אשרו אם הם עושים {service}",
+        en: "Confirm they do {service}",
         ctaAr: "أكّد الخدمة",
         ctaHe: "אשרו שירות",
         ctaEn: "Confirm the service",
       },
-      {
-        kind: "hook",
-        angle: "wall",
-        ar: "الحيط بده {service}؟ اسأل {name}.",
-        he: "הקיר צריך {service}? שאלו את {name}.",
-        en: "Wall need {service}? Ask {name}.",
-        ctaAr: "اسأل المقاول",
-        ctaHe: "שאלו את הקבלן",
-        ctaEn: "Ask the contractor",
-      },
-      {
-        kind: "headline",
-        angle: "home",
-        ar: "بيت في {place} عم يتجدّد مع {name}",
-        he: "בית ב{place} מתחדש עם {name}",
-        en: "A home in {place} refreshing with {name}",
-        ctaAr: "شوف شغلهم المذكور",
-        ctaHe: "ראו את העבודה הכתובה",
-        ctaEn: "See the listed work",
-      },
     ],
     fitness: [
       {
+        kind: "headline",
+        angle: "boutique",
+        need: "place",
+        ar: "ستوديو صغير في {place}: {name}",
+        he: "סטודיו קטן ב{place}: {name}",
+        en: "A small studio in {place}: {name}",
+        ctaAr: "شوف الحصص",
+        ctaHe: "ראו שיעורים",
+        ctaEn: "See classes",
+      },
+      {
+        kind: "hook",
+        angle: "breath",
+        need: "service",
+        ar: "بدك تتنفس شوي؟ {service} عند {name}.",
+        he: "צריכים לנשום? {service} אצל {name}.",
+        en: "Need a breath? {service} at {name}.",
+        ctaAr: "ادخل الجدول",
+        ctaHe: "כנסו למערכת",
+        ctaEn: "Open the schedule",
+      },
+      {
         kind: "cta",
         angle: "book",
-        ar: "احجز حصة من صفحة {name}",
-        he: "קבעו שיעור בעמוד {name}",
-        en: "Book a class on {name}’s page",
+        ar: "احجز حصة عند {name}",
+        he: "קבעו שיעור אצל {name}",
+        en: "Book a class at {name}",
         ctaAr: "احجز حصة",
         ctaHe: "קבעו שיעור",
         ctaEn: "Book a class",
@@ -577,9 +629,10 @@ function seedsFor(niche: Niche): Seed[] {
       {
         kind: "cta",
         angle: "call",
-        ar: "اتّصل {phone} واسأل عن {service}",
-        he: "התקשרו {phone} ושאלו על {service}",
-        en: "Call {phone} about {service}",
+        need: "phone",
+        ar: "اتّصل {phone} واسأل الجدول",
+        he: "התקשרו {phone} למערכת",
+        en: "Call {phone} for the timetable",
         ctaAr: "اسأل الجدول",
         ctaHe: "שאלו מערכת",
         ctaEn: "Ask the timetable",
@@ -587,16 +640,17 @@ function seedsFor(niche: Niche): Seed[] {
       {
         kind: "cta",
         angle: "trial",
-        ar: "جرّب حصة أولى — التفاصيل من الموقع",
-        he: "נסו שיעור ראשון — הפרטים באתר",
-        en: "Try a first class — details on the site",
+        ar: "جرّب حصة أولى مع {name}",
+        he: "נסו שיעור ראשון עם {name}",
+        en: "Try a first class with {name}",
         ctaAr: "جرّب حصة",
         ctaHe: "נסו שיעור",
         ctaEn: "Try a class",
       },
       {
         kind: "cta",
-        angle: "maps",
+        angle: "map",
+        need: "place",
         ar: "الاستوديو في {place}",
         he: "הסטודיו ב{place}",
         en: "The studio is in {place}",
@@ -606,7 +660,8 @@ function seedsFor(niche: Niche): Seed[] {
       },
       {
         kind: "cta",
-        angle: "whatsapp",
+        angle: "wa",
+        need: "phone",
         ar: "واتساب الاستوديو {phone}",
         he: "וואטסאפ לסטודיו {phone}",
         en: "WhatsApp the studio {phone}",
@@ -617,6 +672,7 @@ function seedsFor(niche: Niche): Seed[] {
       {
         kind: "cta",
         angle: "mat",
+        need: "service",
         ar: "احجز مات لـ {service}",
         he: "שמרו מזרן ל{service}",
         en: "Hold a mat for {service}",
@@ -624,28 +680,29 @@ function seedsFor(niche: Niche): Seed[] {
         ctaHe: "שמרו מזרן",
         ctaEn: "Hold a mat",
       },
-      {
-        kind: "hook",
-        angle: "breath",
-        ar: "بدك تتنفس شوي؟ {service} عند {name}.",
-        he: "צריכים לנשום רגע? {service} אצל {name}.",
-        en: "Need a breath? {service} at {name}.",
-        ctaAr: "ادخل الجدول",
-        ctaHe: "כנסו למערכת",
-        ctaEn: "Open the schedule",
-      },
-      {
-        kind: "headline",
-        angle: "boutique",
-        ar: "ستوديو صغير في {place}: {name}",
-        he: "סטודיו קטן ב{place}: {name}",
-        en: "A small studio in {place}: {name}",
-        ctaAr: "شوف الحصص",
-        ctaHe: "ראו שיעורים",
-        ctaEn: "See classes",
-      },
     ],
     out_of_niche: [
+      {
+        kind: "headline",
+        angle: "generic",
+        need: "place",
+        ar: "{name} في {place}",
+        he: "{name} ב{place}",
+        en: "{name} in {place}",
+        ctaAr: "افتح الصفحة",
+        ctaHe: "פתחו עמוד",
+        ctaEn: "Open the page",
+      },
+      {
+        kind: "hook",
+        angle: "soft-out",
+        ar: "{name}: اللي ظاهر على صفحتهم، وبس.",
+        he: "{name}: רק מה שכתוב אצלם.",
+        en: "{name}: only what their page shows.",
+        ctaAr: "اقرأ الصفحة",
+        ctaHe: "קראו את העמוד",
+        ctaEn: "Read the page",
+      },
       {
         kind: "cta",
         angle: "book",
@@ -653,32 +710,34 @@ function seedsFor(niche: Niche): Seed[] {
         he: "צרו קשר עם {name} מהאתר",
         en: "Contact {name} from their site",
         ctaAr: "تواصل من الموقع",
-        ctaHe: "צרו קשר מהאתר",
-        ctaEn: "Contact from the site",
+        ctaHe: "צרו קשר",
+        ctaEn: "Get in touch",
       },
       {
         kind: "cta",
         angle: "call",
-        ar: "اتّصل {phone} إذا الرقم ظاهر",
-        he: "התקשרו ל{phone} אם המספר מופיע",
-        en: "Call {phone} if the number is listed",
-        ctaAr: "اتّصل إن وُجد",
-        ctaHe: "התקשרו אם יש",
-        ctaEn: "Call if listed",
+        need: "phone",
+        ar: "اتّصل {phone}",
+        he: "התקשרו {phone}",
+        en: "Call {phone}",
+        ctaAr: "اتّصل",
+        ctaHe: "התקשרו",
+        ctaEn: "Call",
       },
       {
         kind: "cta",
         angle: "read",
-        ar: "اقرأ وصف {name} زي ما هو",
-        he: "קראו את התיאור של {name} כמו שהוא",
-        en: "Read {name}’s description as written",
+        ar: "اقرأ وصف {name}",
+        he: "קראו את התיאור של {name}",
+        en: "Read {name}’s description",
         ctaAr: "اقرأ الوصف",
         ctaHe: "קראו תיאור",
         ctaEn: "Read the description",
       },
       {
         kind: "cta",
-        angle: "maps",
+        angle: "map",
+        need: "place",
         ar: "دور على {name} في {place}",
         he: "חפשו את {name} ב{place}",
         en: "Find {name} in {place}",
@@ -688,7 +747,8 @@ function seedsFor(niche: Niche): Seed[] {
       },
       {
         kind: "cta",
-        angle: "whatsapp",
+        angle: "wa",
+        need: "phone",
         ar: "راسل {name} على {phone}",
         he: "כתבו ל{name} ב{phone}",
         en: "Message {name} at {phone}",
@@ -706,48 +766,153 @@ function seedsFor(niche: Niche): Seed[] {
         ctaHe: "פתחו קישור",
         ctaEn: "Open the link",
       },
-      {
-        kind: "hook",
-        angle: "soft-out",
-        ar: "هالمحّل مش من تخصصاتنا، بس هاد اللي مكتوب عن {name}.",
-        he: "העסק מחוץ לנישות שלנו, אבל זה מה שכתוב על {name}.",
-        en: "Outside our niches — this is only what {name}’s page says.",
-        ctaAr: "كمّل بحذر",
-        ctaHe: "המשיכו בזהירות",
-        ctaEn: "Continue carefully",
-      },
-      {
-        kind: "headline",
-        angle: "generic",
-        ar: "{name} في {place} — نص عام من الموقع",
-        he: "{name} ב{place} — טקסט כללי מהאתר",
-        en: "{name} in {place} — general lines from the site",
-        ctaAr: "استخدم بحذر",
-        ctaHe: "השתמשו בזהירות",
-        ctaEn: "Use with care",
-      },
     ],
   };
-
-  return [...commonOpeners, ...nicheExtra[niche]];
+  return extra[niche];
 }
 
-export function buildCopyLines(facts: BusinessFacts, lang: Lang): CopyLine[] {
-  const seeds = seedsFor(facts.niche);
-  const seen = new Set<string>();
-  const lines: CopyLine[] = [];
+function hasNeed(facts: BusinessFacts, need?: Seed["need"]): boolean {
+  if (!need) return true;
+  if (need === "phone") return Boolean(facts.phone.value);
+  if (need === "place") return Boolean(facts.place.value);
+  if (need === "hours") return Boolean(facts.hours.value);
+  if (need === "service") return facts.services.length > 0;
+  return true;
+}
 
+const FALLBACK_NO_NEED: Seed[] = [
+  {
+    kind: "headline",
+    angle: "open-page",
+    ar: "صفحة {name} جاهزة إلك",
+    he: "העמוד של {name} מוכן לכם",
+    en: "{name}’s page is ready for you",
+    ctaAr: "افتح هسا",
+    ctaHe: "פתחו עכשיו",
+    ctaEn: "Open now",
+  },
+  {
+    kind: "hook",
+    angle: "direct",
+    ar: "بلا فورم تيه: روح على {name}.",
+    he: "בלי טפסים: לכו ל{name}.",
+    en: "No scavenger form: go to {name}.",
+    ctaAr: "روح للصفحة",
+    ctaHe: "לעמוד",
+    ctaEn: "Go to the page",
+  },
+  {
+    kind: "cta",
+    angle: "visit-site",
+    ar: "زور موقع {name}",
+    he: "בקרו באתר של {name}",
+    en: "Visit {name}’s site",
+    ctaAr: "زور الموقع",
+    ctaHe: "בקרו באתר",
+    ctaEn: "Visit the site",
+  },
+  {
+    kind: "headline",
+    angle: "host-name",
+    ar: "{name}",
+    he: "{name}",
+    en: "{name}",
+    ctaAr: "اقرأ المزيد",
+    ctaHe: "קראו עוד",
+    ctaEn: "Read more",
+  },
+  {
+    kind: "hook",
+    angle: "simple",
+    ar: "{name} — خطوة وحدة من الرابط.",
+    he: "{name} — צעד אחד מהקישור.",
+    en: "{name} — one step from the link.",
+    ctaAr: "خذ الخطوة",
+    ctaHe: "עשו את הצעד",
+    ctaEn: "Take the step",
+  },
+  {
+    kind: "cta",
+    angle: "save",
+    ar: "احفظ صفحة {name} لبعدين",
+    he: "שמרו את העמוד של {name}",
+    en: "Save {name}’s page for later",
+    ctaAr: "احفظ الصفحة",
+    ctaHe: "שמרו עמוד",
+    ctaEn: "Save the page",
+  },
+  {
+    kind: "headline",
+    angle: "ready",
+    ar: "{name} جاهز يسمعك",
+    he: "{name} מוכן לשמוע",
+    en: "{name} is ready to hear you",
+    ctaAr: "احكي هسا",
+    ctaHe: "דברו עכשיו",
+    ctaEn: "Talk now",
+  },
+  {
+    kind: "headline",
+    angle: "one-step",
+    ar: "خطوة وحدة توصلّك لـ {name}",
+    he: "צעד אחד אל {name}",
+    en: "One step to {name}",
+    ctaAr: "خذ الخطوة",
+    ctaHe: "צעד",
+    ctaEn: "Take a step",
+  },
+  {
+    kind: "hook",
+    angle: "no-form",
+    ar: "ما في لف ودوران — {name} من الرابط.",
+    he: "בלי סיבובים — {name} מהקישור.",
+    en: "No runaround — {name} from the link.",
+    ctaAr: "كمّل الرابط",
+    ctaHe: "המשיכו בקישור",
+    ctaEn: "Follow the link",
+  },
+  {
+    kind: "hook",
+    angle: "clear",
+    ar: "الاسم واضح: {name}.",
+    he: "השם ברור: {name}.",
+    en: "The name is clear: {name}.",
+    ctaAr: "تأكّد من الاسم",
+    ctaHe: "וודאו שם",
+    ctaEn: "Confirm the name",
+  },
+  {
+    kind: "cta",
+    angle: "write",
+    ar: "اكتبلهم كلمة على صفحة {name}",
+    he: "כתבו מילה בעמוד של {name}",
+    en: "Leave a note on {name}’s page",
+    ctaAr: "اكتب كلمة",
+    ctaHe: "כתבו מילה",
+    ctaEn: "Write a note",
+  },
+  {
+    kind: "cta",
+    angle: "open-now",
+    ar: "افتح {name} بهاللحظة",
+    he: "פתחו את {name} ברגע זה",
+    en: "Open {name} this moment",
+    ctaAr: "افتح هاللحظة",
+    ctaHe: "פתחו ברגע",
+    ctaEn: "Open this moment",
+  },
+];
+
+export function buildCopyLines(facts: BusinessFacts, lang: Lang): CopyLine[] {
+  const seeds = [...commonSeeds(), ...nicheSeeds(facts.niche), ...FALLBACK_NO_NEED];
+  const lines: CopyLine[] = [];
   seeds.forEach((seed, index) => {
+    if (!hasNeed(facts, seed.need)) return;
     const raw = lang === "he" ? seed.he : lang === "en" ? seed.en : seed.ar;
-    let text = fill(raw, facts, lang, index);
-    if (seen.has(text)) text = `${text} (${index + 1})`;
-    seen.add(text);
-    const ctaLabel = fill(
-      lang === "he" ? seed.ctaHe : lang === "en" ? seed.ctaEn : seed.ctaAr,
-      facts,
-      lang,
-      index,
-    );
+    const ctaRaw = lang === "he" ? seed.ctaHe : lang === "en" ? seed.ctaEn : seed.ctaAr;
+    const text = fill(raw, facts, index);
+    const ctaLabel = fill(ctaRaw, facts, index);
+    if (!text || !ctaLabel) return;
     lines.push({
       id: `${seed.kind}-${seed.angle}`,
       kind: seed.kind,
@@ -757,55 +922,22 @@ export function buildCopyLines(facts: BusinessFacts, lang: Lang): CopyLine[] {
     });
   });
 
-  if (lines.length < 20) {
-    const extras = extraFills(facts, lang, lines.length);
+  const unique = dedupeLines(lines);
+  if (unique.length < 20) {
+    const name = nameOf(facts);
+    const extras: CopyLine[] = [
+      { id: "extra-hello", kind: "headline", angle: "hello", text: lang === "ar" ? `مرحبا في ${name}` : lang === "he" ? `ברוכים הבאים ל${name}` : `Welcome to ${name}`, ctaLabel: lang === "ar" ? "أهلاً" : lang === "he" ? "שלום" : "Hello" },
+      { id: "extra-more", kind: "hook", angle: "more", text: lang === "ar" ? `في تفاصيل زيادة عن ${name} على الصفحة.` : lang === "he" ? `יש עוד פרטים על ${name} בעמוד.` : `More about ${name} is on the page.`, ctaLabel: lang === "ar" ? "زِد قراءة" : lang === "he" ? "קראו עוד קצת" : "Read a bit more" },
+      { id: "extra-go", kind: "cta", angle: "go", text: lang === "ar" ? `كمّل لصفحة ${name}` : lang === "he" ? `המשיכו לעמוד ${name}` : `Continue to ${name}`, ctaLabel: lang === "ar" ? "كمّل" : lang === "he" ? "המשיכו" : "Continue" },
+      { id: "extra-ask", kind: "cta", angle: "ask-page", text: lang === "ar" ? `اسأل ${name} سؤال واحد` : lang === "he" ? `שאלו את ${name} שאלה אחת` : `Ask ${name} one question`, ctaLabel: lang === "ar" ? "اسأل سؤال" : lang === "he" ? "שאלו שאלה" : "Ask one question" },
+    ];
     for (const extra of extras) {
-      if (lines.length >= 24) break;
-      if (seen.has(extra.text)) continue;
-      seen.add(extra.text);
-      lines.push(extra);
+      if (unique.length >= 24) break;
+      if (unique.some((l) => l.text === extra.text)) continue;
+      unique.push(extra);
     }
   }
-
-  return lines;
+  return unique;
 }
 
-function extraFills(facts: BusinessFacts, lang: Lang, start: number): CopyLine[] {
-  const name = nameOf(facts);
-  const extras: Array<[CopyKind, string, string]> = [];
-  if (lang === "ar") {
-    extras.push(
-      ["headline", "short-name", name],
-      ["hook", "host", `المصدر: ${facts.host}`],
-      ["cta", "refresh", "امسح الرابط من جديد إذا تغيّر الموقع"],
-      ["headline", "services-count", facts.services.length ? `خدمات ظاهرة: ${facts.services.join("، ")}` : `${name} — الخدمات ما انذكرتش`],
-    );
-  } else if (lang === "he") {
-    extras.push(
-      ["headline", "short-name", name],
-      ["hook", "host", `מקור: ${facts.host}`],
-      ["cta", "refresh", "סרקו שוב אם האתר התעדכן"],
-      ["headline", "services-count", facts.services.length ? `שירותים באתר: ${facts.services.join(", ")}` : `${name} — אין שירותים כתובים`],
-    );
-  } else {
-    extras.push(
-      ["headline", "short-name", name],
-      ["hook", "host", `Source: ${facts.host}`],
-      ["cta", "refresh", "Scan again if the site changed"],
-      ["headline", "services-count", facts.services.length ? `Listed services: ${facts.services.join(", ")}` : `${name} — no services written`],
-    );
-  }
-  return extras.map(([kind, angle, text], i) => ({
-    id: `extra-${angle}-${start + i}`,
-    kind,
-    text,
-    angle,
-    ctaLabel: text,
-  }));
-}
-
-export function assertDistinct(lines: CopyLine[]): boolean {
-  const texts = lines.map((l) => l.text);
-  const ctas = lines.filter((l) => l.kind === "cta").map((l) => l.ctaLabel);
-  return new Set(texts).size === texts.length && new Set(ctas).size === ctas.length && lines.length >= 20;
-}
+export { assertDistinct };

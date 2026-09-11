@@ -2,8 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { AdMock } from "@/components/AdMock";
+import { AdFrames } from "@/components/AdFrames";
 import { AppFrame } from "@/components/AppFrame";
+import { JourneySteps } from "@/components/JourneySteps";
 import { PrimaryCta } from "@/components/PrimaryCta";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
@@ -22,6 +23,7 @@ function packText(payload: ScanPayload, sel: SelectionState, lang: ReturnType<ty
     `${t("name", lang)}: ${facts.name.value || facts.host}`,
     `${t("phone", lang)}: ${facts.phone.value || t("missing", lang)}`,
     `${t("place", lang)}: ${facts.place.value || t("missing", lang)}`,
+    `${t("hours", lang)}: ${facts.hours.value || t("missing", lang)}`,
     `${t("services", lang)}: ${facts.services.join(", ") || t("missing", lang)}`,
     `URL: ${facts.url}`,
     "",
@@ -35,7 +37,7 @@ function packText(payload: ScanPayload, sel: SelectionState, lang: ReturnType<ty
     ...ctas,
     "",
     `— ${t("images", lang)} —`,
-    ...images.map((i) => i.caption),
+    ...images.map((i) => `${i.caption} [${i.source}]`),
     "",
     t("evidenceNote", lang),
   ].join("\n");
@@ -66,6 +68,7 @@ export function ResultClient() {
   if (!payload || !sel || !chosen) {
     return (
       <AppFrame lang={lang}>
+        <JourneySteps lang={lang} step={3} />
         <div className="k-card mx-auto max-w-lg p-8 text-center">
           <p className="text-lg font-bold">{t("emptyPick", lang)}</p>
           <PrimaryCta className="mt-6" onClick={() => router.push(`/?lang=${lang}`)}>
@@ -80,6 +83,7 @@ export function ResultClient() {
   const headline = chosen.lines.find((l) => l.kind === "headline") || chosen.lines[0];
   const cta = chosen.lines.find((l) => l.kind === "cta");
   const image = chosen.images[0];
+  const host = payload.facts.host;
 
   async function copyAll() {
     try {
@@ -96,8 +100,6 @@ export function ResultClient() {
     setTimeout(() => setCopied(false), 1600);
   }
 
-  const host = payload.facts.host;
-
   function download() {
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     const a = document.createElement("a");
@@ -109,6 +111,7 @@ export function ResultClient() {
 
   return (
     <AppFrame lang={lang}>
+      <JourneySteps lang={lang} step={3} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black">{t("resultTitle", lang)}</h1>
@@ -122,23 +125,24 @@ export function ResultClient() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <AdMock
+      <div className="mt-8">
+        <AdFrames
           name={payload.facts.name.value || payload.facts.host}
           headline={headline}
           image={image}
           cta={cta}
           lang={lang}
         />
-        <div className="grid gap-3">
-          {chosen.lines.map((line) => (
-            <div key={line.id} className="k-card p-4">
-              <p className="text-xs font-extrabold text-khatwa-green">{t(line.kind, lang)}</p>
-              <p className="mt-1 text-lg font-bold">{line.text}</p>
-              <p className="mt-2 text-sm font-semibold text-khatwa-mute">{line.ctaLabel}</p>
-            </div>
-          ))}
-        </div>
+      </div>
+
+      <div className="mt-8 grid gap-3">
+        {chosen.lines.map((line) => (
+          <div key={line.id} className="k-card p-4">
+            <p className="text-xs font-extrabold text-khatwa-green">{t(line.kind, lang)}</p>
+            <p className="mt-1 text-lg font-bold">{line.text}</p>
+            <p className="mt-2 text-sm font-semibold text-khatwa-mute">{line.ctaLabel}</p>
+          </div>
+        ))}
       </div>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">

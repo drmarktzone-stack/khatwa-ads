@@ -54,7 +54,9 @@ export function classifySite(parts: {
   blob?: string | null;
   host?: string | null;
 }): NicheId {
-  const text = [parts.name, parts.title, parts.description, parts.host, (parts.blob || "").slice(0, 8000)]
+  const host = parts.host || "";
+  const hostBoost = /drsamerped|samerped|pediatr/i.test(host) ? " pediatric pediatrics طب الأطفال عيادة أطفال " : "";
+  const text = [parts.name, parts.title, parts.description, host, hostBoost, (parts.blob || "").slice(0, 8000)]
     .filter(Boolean)
     .join(" \n ");
   return detectNiche(text);

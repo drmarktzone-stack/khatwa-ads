@@ -1,6 +1,6 @@
 import { assertDistinct, dedupeLines } from "../guards";
 import type { BusinessFacts, CopyKind, CopyLine, Lang } from "../types";
-import { lineInventsFacts, safeDisplayName } from "./brand";
+import { isBannedSloganName, lineInventsFacts, safeDisplayName } from "./brand";
 import { getNiche } from "./registry";
 import type { CopyTemplate } from "./types";
 import { ANGLE_GROUPS, type AngleGroupId } from "./types";
@@ -13,6 +13,9 @@ function pick(facts: BusinessFacts, i: number) {
     phone: facts.phone.value,
     hours: facts.hours.value,
     wa: facts.whatsapp.value,
+    doctor: facts.doctorName.value,
+    slogan: facts.slogan.value,
+    insurance: facts.insurance.value,
   };
 }
 
@@ -24,6 +27,9 @@ export function fillTemplate(template: string, facts: BusinessFacts, index: numb
     .replaceAll("{service}", p.service || "")
     .replaceAll("{phone}", p.phone || "")
     .replaceAll("{hours}", p.hours || "")
+    .replaceAll("{doctor}", p.doctor || "")
+    .replaceAll("{slogan}", p.slogan || "")
+    .replaceAll("{insurance}", p.insurance || "")
     .replace(/\s{2,}/g, " ")
     .replace(/\s+([،,.!?])/g, "$1")
     .replace(/\s+[—–-]\s*$/g, "")
@@ -37,6 +43,9 @@ function hasNeed(facts: BusinessFacts, need?: CopyTemplate["need"]): boolean {
   if (need === "place") return Boolean(facts.place.value);
   if (need === "hours") return Boolean(facts.hours.value);
   if (need === "service") return facts.services.length > 0;
+  if (need === "slogan") return Boolean(facts.slogan.value);
+  if (need === "insurance") return Boolean(facts.insurance.value);
+  if (need === "doctor") return Boolean(facts.doctorName.value);
   return true;
 }
 
@@ -119,7 +128,8 @@ export function sanitizeGeneratedLines(lines: CopyLine[], facts: BusinessFacts):
   return dedupeLines(
     lines.filter((line) => {
       if (lineInventsFacts(line.text, facts) || lineInventsFacts(line.ctaLabel, facts)) return false;
-      if (sloganLeak.test(line.text) && !sloganLeak.test(name)) return false;
+      if (isBannedSloganName(line.text) && !facts.slogan.value) return false;
+      if (sloganLeak.test(line.text) && !facts.slogan.value && !sloganLeak.test(name)) return false;
       return true;
     }),
   );

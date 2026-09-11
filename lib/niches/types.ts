@@ -62,6 +62,7 @@ export const NICHE_IDS: Exclude<NicheId, "out_of_niche">[] = [
   "lawyers",
   "real_estate_agents",
   "medical_clinics",
+  "pediatric_clinics",
   "dental",
   "beauty_aesthetic",
   "contractors",

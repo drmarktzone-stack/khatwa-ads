@@ -12,13 +12,14 @@ One sitting. One green path: **URL → scan → pick → export**. No invented p
 
 Arabic (`ar`) is Palestinian colloquial and the generation base. `he` / `en` are translations of that base (Cloud Translation or Gemini when keys exist; otherwise the facts engine in that language).
 
-## The 10 niches (only)
+## The 11 niches (only)
 
 | id | AR | HE | EN |
 | --- | --- | --- | --- |
 | `lawyers` | محامون | עורכי דין | Lawyers |
 | `real_estate_agents` | وسطاء عقارات محليون | תיווך | Local real-estate agents |
 | `medical_clinics` | عيادات طبية | מרפאות | Medical clinics |
+| `pediatric_clinics` | عيادات أطفال | מרפאות ילדים | Pediatric clinics |
 | `dental` | عيادات أسنان | שיניים | Dental |
 | `beauty_aesthetic` | تجميل وصالونات | אסתטיקה ומספרות | Beauty & aesthetic |
 | `contractors` | مقاولون وتجديد | שיפוצים | Contractors & renovation |
@@ -27,11 +28,11 @@ Arabic (`ar`) is Palestinian colloquial and the generation base. `he` / `en` are
 | `fitness` | صالات ومدربون | כושר | Gyms & trainers |
 | `home_trades` | خدمات بيت طارئة | שירותי בית דחופים | Urgent home trades (plumb / elec / HVAC) |
 
-Registry: `lib/niches/` — labels, detect keywords, **≥30** copy templates per niche (`{name}` `{place}` `{phone}` `{service}`), image motifs + stock query packs, scan-field priority, CTA style (WhatsApp / call). Scan maps a site to **one** of the 10.
+Registry: `lib/niches/` — labels, detect keywords, **≥30** copy templates per niche (`{name}` `{place}` `{phone}` `{service}` `{doctor}` `{slogan}` `{insurance}`), image motifs + stock query packs, scan-field priority, CTA style (WhatsApp / call). Scan maps a site to **one** of the 11.
 
-**Medical brand law:** `عيادتي` or a doctor name (`د.سامر`) is OK. A slogan such as «طفلك بخير وقلبك مرتاح» is **never** the business name. Never invent **القدس / Jerusalem**. Never treat **100 / 101 / 911** as the shop phone.
+**Pediatric brand law:** on Samer / عيادتي sites the name is **عيادتي**. «طفلك بخير وقلبك مرتاح» is USP/description only — never `name`. Clalit/insurance only if evidenced. Never invent **القدس / Jerusalem**. Never treat **100 / 101 / 911** as the shop phone.
 
-Hard check: `https://drsamerped.ai.studio` → `medical_clinics`, name `د.سامر` or `عيادتي`, place `باقة الغربية`, real phones only.
+Hard check: `https://drsamerped.ai.studio` → `pediatric_clinics`, name `عيادتي`, place `باقة الغربية`, real phones only.
 
 ## Journey
 
@@ -111,7 +112,7 @@ gcloud run deploy khatwa-ads \
   --allow-unauthenticated
 ```
 
-Post-deploy: `GET /api/health`, then scan `https://drsamerped.ai.studio` — expect niche **عيادات طبية**, name **د.سامر** or **عيادتي**, place **باقة الغربية**, real clinic phones, no slogan-as-name, no invented القدس. A dental demo and a restaurant demo must keep their own warehouse lines (not clinic hooks). Zero fake ROAS.
+Post-deploy: `GET /api/health`, then scan `https://drsamerped.ai.studio` — expect niche **عيادات أطفال** (`pediatric_clinics`), name **عيادتي**, place **باقة الغربية**, real clinic phones, slogan only as USP, no invented القدس. A dental demo and a restaurant demo must keep their own warehouse lines (not clinic hooks). Zero fake ROAS.
 
 ## License
 

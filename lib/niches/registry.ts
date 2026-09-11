@@ -6,6 +6,7 @@ import { fitness } from "./defs/fitness";
 import { homeTrades } from "./defs/home-trades";
 import { lawyers } from "./defs/lawyers";
 import { medicalClinics } from "./defs/medical-clinics";
+import { pediatricClinics } from "./defs/pediatric-clinics";
 import { outOfNiche } from "./defs/out-of-niche";
 import { realEstateAgents } from "./defs/real-estate-agents";
 import { restaurants } from "./defs/restaurants";
@@ -21,6 +22,7 @@ export const NICHE_REGISTRY: Record<Exclude<NicheId, "out_of_niche">, AnyNicheDe
   lawyers,
   real_estate_agents: realEstateAgents,
   medical_clinics: medicalClinics,
+  pediatric_clinics: pediatricClinics,
   dental,
   beauty_aesthetic: beautyAesthetic,
   contractors,

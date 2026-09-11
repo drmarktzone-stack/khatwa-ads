@@ -22,13 +22,14 @@ import { DEMOS, factsFromDemo, factsFromHtml, scanBusinessUrl } from "../lib/sca
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-const CLINIC_HOOKS = /عيادة هادية|موجوع؟|كرسي العلاج|طفلك بخير|قلبك مرتاح|موعد طبي/;
+const CLINIC_HOOKS = /عيادة هادية|موجوع؟|كرسي العلاج|موعد طبي/;
 
-test("registry is exactly the 10 high-ad niches", () => {
+test("registry is exactly the 11 high-ad niches", () => {
   assert.deepEqual(SUPPORTED_NICHES, [
     "lawyers",
     "real_estate_agents",
     "medical_clinics",
+    "pediatric_clinics",
     "dental",
     "beauty_aesthetic",
     "contractors",
@@ -54,9 +55,12 @@ test("each niche warehouse yields ≥20 distinct Palestinian-AR lines", () => {
     const lines = buildCopyLines(facts, "ar");
     assert.ok(lines.length >= 20, `${demo.slug} lines ${lines.length}`);
     assert.equal(assertDistinct(lines), true, `${demo.slug} not distinct`);
+    assert.equal(isBannedSloganName(facts.name.value), false);
     assert.ok(lines.every((l) => l.text.includes(facts.name.value || "") || l.text.length > 4));
     assert.ok(!lines.some((l) => /القدس|ירושלים|Jerusalem/.test(l.text)), `${demo.slug} invented Jerusalem`);
-    assert.ok(!lines.some((l) => BANNED_NAME_SLOGANS.some((s) => l.text.includes(s))));
+    if (demo.niche !== "pediatric_clinics") {
+      assert.ok(!lines.some((l) => BANNED_NAME_SLOGANS.some((s) => l.text.includes(s))));
+    }
   }
 });
 
@@ -71,7 +75,7 @@ test("dental and restaurant fixtures use their own warehouse — not clinic hook
   assert.ok(!dentalLines.some((l) => CLINIC_HOOKS.test(l.text)), "dental leaked clinic hooks");
   assert.ok(!NICHE_REGISTRY.dental.copy.some((s) => CLINIC_HOOKS.test(`${s.ar} ${s.ctaAr}`)));
 
-  assert.ok(foodLines.some((l) => /طاولة|مطبخ|قائمة|قهوة|تعشى|تعشى|مطعم/.test(l.text)));
+  assert.ok(foodLines.some((l) => /طاولة|مطبخ|قائمة|قهوة|تعشى|مطعم/.test(l.text)));
   assert.ok(!foodLines.some((l) => CLINIC_HOOKS.test(l.text) || /عيادة الأسنان|كرسي الأسنان/.test(l.text)));
   assert.ok(!NICHE_REGISTRY.restaurants.copy.some((s) => CLINIC_HOOKS.test(`${s.ar} ${s.ctaAr}`)));
 
@@ -83,8 +87,23 @@ test("dental and restaurant fixtures use their own warehouse — not clinic hook
   assert.equal(new Set(foodCaps).size, foodCaps.length);
 });
 
-test("classifier maps sites onto one of the 10 — out-of-list is a soft gate", () => {
-  assert.equal(detectNiche("عيادة طب الأطفال والعائلة كلاليت باقة الغربية"), "medical_clinics");
+test("pediatric warehouse is parent-pain + WhatsApp — not general-medical dump", () => {
+  const ped = DEMOS.find((d) => d.niche === "pediatric_clinics");
+  assert.ok(ped);
+  const facts = factsFromDemo(ped);
+  const lines = buildCopyLines(facts, "ar");
+  assert.ok(lines.some((l) => /ولد|أطفال|أم|حرارة|سخن/.test(l.text)));
+  assert.ok(lines.some((l) => /واتساب/.test(l.text) || /واتساب/.test(l.ctaLabel)));
+  assert.ok(lines.some((l) => /كلاليت/.test(l.text)));
+  assert.ok(lines.some((l) => /طفلك بخير وقلبك مرتاح/.test(l.text) && /slogan|usp/.test(l.angle)));
+  assert.ok(!lines.some((l) => l.text.trim() === "طفلك بخير وقلبك مرتاح"));
+  assert.ok(NICHE_REGISTRY.pediatric_clinics.copy.some((s) => s.need === "slogan"));
+  assert.ok(NICHE_REGISTRY.pediatric_clinics.copy.some((s) => s.need === "insurance"));
+});
+
+test("classifier maps sites onto one of the 11 — pediatric ≠ general medical", () => {
+  assert.equal(detectNiche("عيادة طب الأطفال والعائلة كلاليت باقة الغربية"), "pediatric_clinics");
+  assert.equal(detectNiche("طبيب عام عيادة طبية باطنية"), "medical_clinics");
   assert.equal(detectNiche("מרפאת שיניים הלבנה יישור"), "dental");
   assert.equal(detectNiche("مطعم منسف ومقهى قائمة الطعام"), "restaurants");
   assert.equal(detectNiche("مكتب محاماة استشارة قانونية"), "lawyers");
@@ -93,11 +112,12 @@ test("classifier maps sites onto one of the 10 — out-of-list is a soft gate", 
   assert.equal(detectNiche("مقاول ترميم تشطيب مطبخ שיפוץ"), "contractors");
   assert.equal(detectNiche("دروس خصوصية توجيهي رياضيات"), "tutoring");
   assert.equal(detectNiche("ستوديو يوغا بيلاتس إيمان شخصي"), "fitness");
-  assert.equal(detectNiche("سباك طوارئ كهربائي تكييف نזילה"), "home_trades");
+  assert.equal(detectNiche("سباك طوارئ كهربائي تكييف נזילה"), "home_trades");
   assert.equal(classifySite({ title: "مكتبة الدرج", description: "كتب مستعملة" }), "out_of_niche");
+  assert.equal(classifySite({ host: "drsamerped.ai.studio", title: "عيادة" }), "pediatric_clinics");
 });
 
-test("medical brand law: doctor name or عيادتي — never the slogan", () => {
+test("Samer / عيادتي brand: name is عيادتي — slogan never the name", () => {
   assert.equal(isBannedSloganName("طفلك بخير وقلبك مرتاح"), true);
   const picked = pickHonestName({
     candidates: [
@@ -108,7 +128,7 @@ test("medical brand law: doctor name or عيادتي — never the slogan", () =
     blob: "د. سامر محمد أبو مخ عيادة طب الأطفال طفلك بخير وقلبك مرتاح",
     medical: true,
   });
-  assert.match(picked.value, /د\.?\s*سامر|عيادتي/);
+  assert.equal(picked.value, "عيادتي");
   assert.equal(isBannedSloganName(picked.value), false);
 });
 
@@ -122,24 +142,29 @@ test("emergency phones 100/101/911 are banned; real mobiles stay", () => {
   ]);
 });
 
-test("drsamerped fixture → medical_clinics, honest name/place/phone, no slogan, no القدس", () => {
+test("drsamerped fixture → pediatric_clinics, عيادتي, slogan USP only, no القدس", () => {
   const html = readFileSync(join(here, "fixtures/drsamerped.html"), "utf8");
   const { facts } = factsFromHtml(html, "https://drsamerped.ai.studio/");
-  assert.equal(facts.niche, "medical_clinics");
-  assert.match(facts.name.value || "", /د\.?\s*سامر|عيادتي/);
+  assert.equal(facts.niche, "pediatric_clinics");
+  assert.equal(facts.name.value, "عيادتي");
   assert.equal(isBannedSloganName(facts.name.value), false);
   assert.doesNotMatch(facts.name.value || "", /طفلك بخير|قلبك مرتاح/);
   assert.match(facts.place.value || "", /باقة الغربية/);
   assert.doesNotMatch(facts.place.value || "", /القدس|ירושלים|Jerusalem/);
   assert.ok(facts.phones.some((p) => /052-?8885800|972528885800/.test(p)));
   assert.ok(!facts.phones.some((p) => isBannedPhone(p)));
+  assert.equal(facts.slogan.value, "طفلك بخير وقلبك مرتاح");
+  assert.match(facts.insurance.value || "", /كلاليت|כללית/);
+  assert.match(facts.doctorName.value || "", /سامر/);
 
   const lines = buildCopyLines(facts, "ar");
   assert.ok(lines.length >= 20);
   assert.equal(assertDistinct(lines), true);
   assert.ok(lines.every((l) => !/القدس|ירושלים/.test(l.text)));
-  assert.ok(lines.every((l) => !/طفلك بخير وقلبك مرتاح/.test(l.text)));
-  assert.ok(lines.some((l) => /د\.?\s*سامر|عيادتي/.test(l.text)));
+  assert.ok(lines.every((l) => l.text.trim() !== "طفلك بخير وقلبك مرتاح"));
+  assert.ok(lines.some((l) => /عيادتي/.test(l.text)));
+  assert.ok(lines.some((l) => /طفلك بخير وقلبك مرتاح/.test(l.text) && /slogan|usp/.test(l.angle)));
+  assert.ok(lines.some((l) => /كلاليت|כללית/.test(l.text)));
 });
 
 test("Jerusalem is never invented from a casual mention", () => {
@@ -152,16 +177,16 @@ test("Jerusalem is never invented from a casual mention", () => {
   assert.doesNotMatch(facts.place.value || "", /القدس|ירושלים|Jerusalem/);
 });
 
-test("live drsamerped.ai.studio scan stays honest when the page is reachable", async () => {
+test("live drsamerped.ai.studio scan is pediatric_clinics when the page is reachable", async () => {
   const outcome = await scanBusinessUrl("https://drsamerped.ai.studio", "ar");
   if (!outcome.facts) {
     assert.ok(outcome.error, "failure must be an error, not a silent sample");
     return;
   }
   assert.equal(outcome.facts.usedDemo, false);
-  assert.equal(outcome.facts.niche, "medical_clinics");
+  assert.equal(outcome.facts.niche, "pediatric_clinics");
   assert.match(outcome.facts.host, /drsamerped\.ai\.studio/i);
-  assert.match(outcome.facts.name.value || "", /د\.?\s*سامر|عيادتي/);
+  assert.equal(outcome.facts.name.value, "عيادتي");
   assert.doesNotMatch(outcome.facts.name.value || "", /طفلك بخير|قلبك مرتاح/);
   if (outcome.facts.place.value) {
     assert.match(outcome.facts.place.value, /باقة الغربية/);

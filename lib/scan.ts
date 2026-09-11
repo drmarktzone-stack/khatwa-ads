@@ -2,6 +2,8 @@ import * as cheerio from "cheerio";
 import {
   classifySite,
   extractDoctorName,
+  extractInsurance,
+  extractKnownSlogan,
   filterRealPhones,
   findExplicitJerusalem,
   findPlaceHint,
@@ -206,7 +208,12 @@ function extractName(
     .filter((v): v is string => Boolean(v && String(v).trim().length > 1))
     .filter((v) => !isBannedSloganName(v))
     .map((v) => ({ value: decodeEntities(v), evidence: "on_page" as const }));
-  return pickHonestName({ candidates, host, blob, medical });
+  return pickHonestName({
+    candidates,
+    host,
+    blob,
+    medical: medical || /pediatric|أطفال|عيادتي|samerped/i.test(`${host} ${blob}`),
+  });
 }
 
 export function extractSiteImages($: cheerio.CheerioAPI, pageUrl: string): string[] {
@@ -246,6 +253,9 @@ export interface DemoBiz {
   description: string;
   niche: NicheId;
   images: string[];
+  doctorName?: string;
+  slogan?: string;
+  insurance?: string;
 }
 
 export const DEMOS: DemoBiz[] = [
@@ -256,12 +266,30 @@ export const DEMOS: DemoBiz[] = [
     phone: "059-700-2140",
     place: "رام الله",
     hours: "السبت–الخميس ٩–٥",
-    services: ["فحص أطفال", "متابعة نمو", "استشارة"],
-    description: "عيادة طبية محلية — العيّنة للتوضيح فقط.",
-    niche: "medical_clinics",
+    services: ["فحص أطفال", "متابعة نمو", "تطعيم"],
+    description: "عيادة أطفال محلية — العيّنة للتوضيح فقط.",
+    niche: "pediatric_clinics",
+    doctorName: "د. ليلى",
+    slogan: "طفلك بخير وقلبك مرتاح",
+    insurance: "كلاليت",
     images: [
       "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=900&q=80",
       "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=900&q=80",
+    ],
+  },
+  {
+    slug: "medical",
+    url: "https://demo.khatwa.ads/clinic-general-jenin",
+    name: "عيادة النور",
+    phone: "04-250-3310",
+    place: "جنين",
+    hours: "السبت–الخميس ٨–٣",
+    services: ["فحص", "استشارة", "طب عائلة"],
+    description: "عيادة طبية عامة — عيّنة توضيحية.",
+    niche: "medical_clinics",
+    images: [
+      "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=900&q=80",
+      "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=900&q=80",
     ],
   },
   {
@@ -458,6 +486,9 @@ export function factsFromDemo(demo: DemoBiz): BusinessFacts {
     services: demo.services,
     servicesEvidence: demo.services.length ? "demo" : "missing",
     description: field(demo.description, "demo"),
+    doctorName: field(demo.doctorName || null, demo.doctorName ? "demo" : "missing"),
+    slogan: field(demo.slogan || null, demo.slogan ? "demo" : "missing"),
+    insurance: field(demo.insurance || null, demo.insurance ? "demo" : "missing"),
     niche: demo.niche,
     fetched: false,
     usedDemo: true,
@@ -548,8 +579,11 @@ export function factsFromHtml(
     null;
   const title = $("title").first().text().trim() || null;
   const preNiche = classifySite({ name: title, title, description: desc, blob, host });
-  const name = extractName($, host, blob, preNiche === "medical_clinics");
+  const name = extractName($, host, blob, preNiche === "medical_clinics" || preNiche === "pediatric_clinics");
   const niche = classifySite({ name: name.value, title, description: desc, blob, host });
+  const doctorName = extractDoctorName(blob);
+  const slogan = extractKnownSlogan(blob);
+  const insurance = extractInsurance(blob);
   const phones = extractPhones(html, $, scripts);
   const place = extractPlace($, blob);
   const hours = extractHours($, blob);
@@ -570,6 +604,9 @@ export function factsFromHtml(
     services,
     servicesEvidence: services.length ? "on_page" : "missing",
     description: field(desc, desc ? "on_page" : "missing"),
+    doctorName: field(doctorName, doctorName ? "on_page" : "missing", doctorName || undefined),
+    slogan: field(slogan, slogan ? "on_page" : "missing", slogan || undefined),
+    insurance: field(insurance, insurance ? "on_page" : "missing", insurance || undefined),
     niche,
     fetched: true,
     usedDemo: false,

@@ -13,7 +13,7 @@ const SLOGAN_SHAPE =
   /^(?=.{16,})(?!د[\.٫]?\s)(?!ד["״]?ר\s)(?!dr\.?\s)(?!عيادتي\b).*(بخير|مرتاح|أحلى|أفضل|رقم\s*١|رقم\s*1|بدون\s*قلق|100\s*%|مجانا)/i;
 
 const DOCTOR_NAME =
-  /(?:^|[|\-–—:·]\s*)((?:د(?:كتور)?|الدكتور)\s*\.?\s*[\u0600-\u06FF]{2,}(?:\s+[\u0600-\u06FF]{2,}){0,4}|ד["״]?ר\s+[\u0590-\u05FF]{2,}(?:\s+[\u0590-\u05FF]{2,}){0,4}|Dr\.?\s+[A-Za-z][A-Za-z.'-]{1,}(?:\s+[A-Za-z][A-Za-z.'-]{1,}){0,3})/i;
+  /((?:د(?:كتور)?|الدكتور)\s*\.?\s*[\u0600-\u06FF]{2,}(?:\s+[\u0600-\u06FF]{2,}){0,4}|ד["״]?ר\s+[\u0590-\u05FF]{2,}(?:\s+[\u0590-\u05FF]{2,}){0,4}|Dr\.?\s+[A-Za-z][A-Za-z.'-]{1,}(?:\s+[A-Za-z][A-Za-z.'-]{1,}){0,3})/i;
 
 const CLINIC_SELF = /عيادتي|מרפאתי|my clinic/i;
 
@@ -83,6 +83,28 @@ export function medicalFallbackName(): string {
   return "عيادتي";
 }
 
+export function isEyadatiBrandSite(host: string, blob: string): boolean {
+  const hay = `${host} ${blob}`.toLowerCase();
+  if (/drsamerped|samerped/.test(hay)) return true;
+  if (/عيادتي/.test(blob) && /سامر|samer/.test(hay)) return true;
+  return false;
+}
+
+export function extractKnownSlogan(blob: string): string | null {
+  for (const slogan of BANNED_NAME_SLOGANS) {
+    if (blob.includes(slogan)) return slogan;
+  }
+  return null;
+}
+
+export function extractInsurance(blob: string): string | null {
+  const labels = ["كلاليت", "כללית", "مكابي", "מכבי", "لئوميت", "לאומית", "Clalit", "Maccabi", "Leumit"];
+  for (const label of labels) {
+    if (blob.includes(label)) return label;
+  }
+  return null;
+}
+
 export function pickHonestName(opts: {
   candidates: Array<{ value: string; evidence: "on_page" | "hostname" | "demo" }>;
   host: string;
@@ -97,6 +119,9 @@ export function pickHonestName(opts: {
   }
 
   if (opts.medical) {
+    if (isEyadatiBrandSite(opts.host, opts.blob)) {
+      return { value: medicalFallbackName(), evidence: "on_page", snippet: "عيادتي" };
+    }
     const fromBlob = extractDoctorName(opts.blob);
     if (fromBlob && !isBannedSloganName(fromBlob)) {
       return { value: shortenDoctor(fromBlob), evidence: "on_page", snippet: fromBlob };
@@ -131,12 +156,17 @@ export function tidyName(raw: string): string {
   return cut.slice(0, 80);
 }
 
-export function safeDisplayName(facts: Pick<BusinessFacts, "name" | "host" | "niche">): string {
+function isClinicNiche(niche: BusinessFacts["niche"]): boolean {
+  return niche === "medical_clinics" || niche === "pediatric_clinics";
+}
+
+export function safeDisplayName(facts: Pick<BusinessFacts, "name" | "host" | "niche" | "url">): string {
   const raw = facts.name.value || facts.host;
+  if (isEyadatiBrandSite(facts.host || facts.url || "", raw)) return medicalFallbackName();
   if (isBannedSloganName(raw)) {
-    return facts.niche === "medical_clinics" ? medicalFallbackName() : facts.host;
+    return isClinicNiche(facts.niche) ? medicalFallbackName() : facts.host;
   }
-  if (facts.niche === "medical_clinics" && looksLikeDoctorName(raw)) {
+  if (isClinicNiche(facts.niche) && looksLikeDoctorName(raw)) {
     return shortenDoctor(raw);
   }
   return raw;

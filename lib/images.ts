@@ -12,6 +12,7 @@ function fillCaption(template: string, facts: BusinessFacts, index: number): str
     .replaceAll("{name}", name)
     .replaceAll("{place}", place ? ` — ${place}` : "")
     .replaceAll("{service}", service || "")
+    .replaceAll("{doctor}", facts.doctorName.value || name)
     .replace(/\s{2,}/g, " ")
     .replace(/\s+[—–-]\s*$/g, "")
     .trim();

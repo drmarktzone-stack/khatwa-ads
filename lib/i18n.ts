@@ -25,7 +25,7 @@ const D: Dict = {
   nichesTitle: { ar: "التخصصات اللي منخدمها", he: "הנישות שלנו", en: "Niches we serve" },
   nicheBadge: { ar: "التخصص", he: "הנישה", en: "Niche" },
   angleGroup: { ar: "زاوية", he: "זווית", en: "Angle" },
-  nichesWeServe: { ar: "عشرة تخصصات إعلان — وبس", he: "עשר נישות מודעה — רק הן", en: "Ten ad niches — only these" },
+  nichesWeServe: { ar: "١١ تخصص إعلان — وبس", he: "11 נישות מודעה — רק הן", en: "Eleven ad niches — only these" },
   samples: { ar: "أو جرّب عيّنة جاهزة", he: "או נסו דוגמה מוכנה", en: "Or try a ready sample" },
   promise1: { ar: "سوق نصوص ≥ 20 سطر مختلف", he: "שוק של 20+ שורות שונות", en: "Marketplace of 20+ distinct lines" },
   promise2: { ar: "صور مجال بتعليق فريد", he: "תמונות נישה עם כיתוב ייחודי", en: "Niche images with unique captions" },
@@ -162,9 +162,9 @@ const D: Dict = {
     en: "Could not open the page. Your URL is kept — retry. We did not load the sample.",
   },
   notice_out_of_niche: {
-    ar: "هالمحّل مش من العشرة اللي منركّز عليها (محامون، عقارات، عيادات، أسنان، تجميل، مقاولون، دروس، مطاعم، فتنس، خدمات بيت). طلّعلك أفكار عامة من المكتوب — من غير تخصص ملفّق ومن غير ROAS.",
-    he: "העסק מחוץ לעשר הנישות שלנו. בנינו שורות כלליות רק ממה שכתוב — בלי התמחות מזויפת ובלי ROAS.",
-    en: "This business is outside our ten niches. We built general lines only from what is written — no fake specialty, no ROAS.",
+    ar: "هالمحّل مش من الـ١١ تخصص اللي منركّز عليها (محامون، عقارات، عيادات، أطفال، أسنان، تجميل، مقاولون، دروس، مطاعم، فتنس، خدمات بيت). طلّعلك أفكار عامة من المكتوب — من غير تخصص ملفّق ومن غير ROAS.",
+    he: "העסק מחוץ ל-11 הנישות שלנו. בנינו שורות כלליות רק ממה שכתוב — בלי התמחות מזויפת ובלי ROAS.",
+    en: "This business is outside our 11 niches. We built general lines only from what is written — no fake specialty, no ROAS.",
   },
   evidenceNote: {
     ar: "الفراغات اتعبّت بصراحة: «ما انذكرش» — مش باسم مدينة ولا رقم.",

@@ -4,6 +4,7 @@ export type NicheId =
   | "lawyers"
   | "real_estate_agents"
   | "medical_clinics"
+  | "pediatric_clinics"
   | "dental"
   | "beauty_aesthetic"
   | "contractors"
@@ -26,7 +27,7 @@ export type CtaStyle = "whatsapp" | "call" | "whatsapp_or_call";
 
 export type ScanField = "name" | "phone" | "whatsapp" | "place" | "hours" | "services";
 
-export type CopyNeed = "phone" | "place" | "hours" | "service" | "whatsapp";
+export type CopyNeed = "phone" | "place" | "hours" | "service" | "whatsapp" | "slogan" | "insurance" | "doctor";
 
 export interface FactField {
   value: string | null;
@@ -48,6 +49,9 @@ export interface BusinessFacts {
   services: string[];
   servicesEvidence: EvidenceLevel;
   description: FactField;
+  doctorName: FactField;
+  slogan: FactField;
+  insurance: FactField;
   niche: NicheId;
   fetched: boolean;
   usedDemo: boolean;

@@ -19,8 +19,9 @@ function promptAr(facts: BusinessFacts): string {
 FACTS ONLY. Never invent phone, place, hours, services, prices, discounts, or ROAS.
 If a fact is missing, do not mention it.
 Never invent Jerusalem / القدس / ירושלים unless FACTS.place already contains it.
-Never use a marketing slogan as the business name. Forbidden name: «طفلك بخير وقلبك مرتاح».
-Use this name only: "${name}". Medical clinics may use عيادتي or a doctor name — never a slogan.
+Never use a marketing slogan as the business name. «طفلك بخير وقلبك مرتاح» is USP/description ONLY — never the name.
+Use this name only: "${name}". Pediatric / Samer / عيادتي sites brand as عيادتي. Doctor name may appear as a fact, not as a slogan-name.
+Clalit/insurance only if present in FACTS.insurance.
 Banned phones as the shop number: 100, 101, 911.
 Niche is exactly "${facts.niche}" (${nicheLabel(facts.niche, "ar")}). Use this niche's angles only. Do not dump clinic hooks on a restaurant or dental lines on a plumber.
 Warehouse angles to vary: ${angles}
@@ -33,6 +34,9 @@ FACTS:
 ${JSON.stringify(
     {
       name,
+      doctorName: facts.doctorName.value,
+      slogan: facts.slogan.value,
+      insurance: facts.insurance.value,
       phones: facts.phones,
       whatsapp: facts.whatsapp.value,
       place: facts.place.value,

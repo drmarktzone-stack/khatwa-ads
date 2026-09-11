@@ -23,7 +23,7 @@ function Frame({
 }) {
   const tall = ratio === "9:16";
   return (
-    <div className={fontClass(lang)}>
+    <div className={`${fontClass(lang)} ${tall ? "w-[240px]" : "w-[360px]"} shrink-0`}>
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="text-sm font-extrabold">{ratio === "1:1" ? t("frame11", lang) : t("frame916", lang)}</p>
         <PrimaryCta
@@ -36,8 +36,8 @@ function Frame({
         </PrimaryCta>
       </div>
       <div
-        className={`relative overflow-hidden rounded-[2rem] border-4 border-khatwa-yellow shadow-card ${
-          tall ? "aspect-[9/16] max-w-[280px]" : "aspect-square max-w-[420px]"
+        className={`relative w-full overflow-hidden rounded-[2rem] border-4 border-khatwa-yellow shadow-card ${
+          tall ? "aspect-[9/16]" : "aspect-square"
         } bg-khatwa-green-dark`}
       >
         {image ? (

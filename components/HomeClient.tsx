@@ -6,6 +6,7 @@ import { JourneySteps } from "@/components/JourneySteps";
 import { UrlForm } from "@/components/UrlForm";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
+import { nicheLabel } from "@/lib/niches";
 import { DEMOS } from "@/lib/scan";
 import { defaultSelection, saveScan, saveSelection } from "@/lib/session";
 import type { ScanPayload } from "@/lib/types";
@@ -53,7 +54,7 @@ export function HomeClient() {
         <h2 className="text-xl font-extrabold">{t("nichesTitle", lang)}</h2>
         <p className="mt-1 text-sm text-khatwa-mute">{t("samples", lang)}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {DEMOS.filter((d) => d.niche !== "out_of_niche").map((demo) => (
+          {DEMOS.map((demo) => (
             <button
               key={demo.slug}
               type="button"
@@ -65,7 +66,10 @@ export function HomeClient() {
               <div className="p-4">
                 <p className="font-extrabold">{demo.name}</p>
                 <p className="mt-1 text-sm text-khatwa-mute">
-                  {demo.place} · {demo.services.join(lang === "ar" ? "، " : ", ")}
+                  {demo.place} ·{" "}
+                  {demo.niche === "out_of_niche"
+                    ? nicheLabel(demo.niche, lang)
+                    : demo.services.join(lang === "ar" ? "، " : ", ")}
                 </p>
               </div>
             </button>

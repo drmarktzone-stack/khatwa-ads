@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --k-green: #1b7f4e;
+  --k-yellow: #f5c518;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #fff6d4 0%, transparent 50%),
+    radial-gradient(900px 420px at 110% 0%, #d9f3e4 0%, transparent 46%),
+    linear-gradient(180deg, #f4fbf6 0%, #ffffff 42%, #fffdf4 100%);
+  color: #143028;
+}
+
+::selection {
+  background: #f5c518;
+  color: #143028;
+}
+
+.pattern-dots {
+  background-image: radial-gradient(#1b7f4e22 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.k-card {
+  @apply rounded-3xl bg-white shadow-card border border-khatwa-line;
+}
+
+.k-chip {
+  @apply inline-flex items-center gap-1 rounded-full border border-khatwa-line bg-white px-3 py-1 text-sm text-khatwa-ink;
+}

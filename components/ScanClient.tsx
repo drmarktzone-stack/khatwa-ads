@@ -10,13 +10,23 @@ import { JourneySteps } from "@/components/JourneySteps";
 import { PrimaryCta } from "@/components/PrimaryCta";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
-import { defaultSelection, loadScan, loadSelection, saveScan, saveSelection } from "@/lib/session";
+import { resolveMarketplacePayload } from "@/lib/scan-accept";
+import { defaultSelection, loadDraftUrl, loadLastScanUrl, loadScan, loadSelection, saveScan, saveSelection } from "@/lib/session";
 import type { CopyLine, ScanPayload } from "@/lib/types";
+
+function homeWithUrl(lang: string) {
+  const draft = loadDraftUrl().trim();
+  const q = new URLSearchParams({ lang });
+  if (draft) q.set("url", draft);
+  return `/?${q.toString()}`;
+}
 
 export function ScanClient() {
   const lang = parseLang(useSearchParams().get("lang"));
   const router = useRouter();
   const [payload, setPayload] = useState<ScanPayload | null>(null);
+  const [ready, setReady] = useState(false);
+  const [missing, setMissing] = useState(false);
   const [lineIds, setLineIds] = useState<string[]>([]);
   const [imageIds, setImageIds] = useState<string[]>([]);
   const [note, setNote] = useState<string | null>(null);
@@ -24,12 +34,22 @@ export function ScanClient() {
 
   useEffect(() => {
     const stored = loadScan();
-    if (!stored) return;
-    if (!stored.baseLines) stored.baseLines = stored.lines;
-    setPayload(stored);
-    const sel = loadSelection() || defaultSelection(stored);
+    const resolved = resolveMarketplacePayload(stored, loadLastScanUrl() || loadDraftUrl());
+    if (resolved.kind !== "ok") {
+      setMissing(true);
+      setPayload(null);
+      setReady(true);
+      return;
+    }
+    const next = resolved.payload;
+    if (!next.baseLines) next.baseLines = next.lines;
+    saveScan(next);
+    setPayload(next);
+    const sel = loadSelection() || defaultSelection(next);
+    saveSelection(sel);
     setLineIds(sel.lineIds);
     setImageIds(sel.imageIds);
+    setReady(true);
   }, []);
 
   useEffect(() => {
@@ -66,7 +86,7 @@ export function ScanClient() {
 
   function continueOn() {
     if (!payload) {
-      router.push(`/?lang=${lang}`);
+      router.push(homeWithUrl(lang));
       return;
     }
     let nextLines = lineIds;
@@ -80,14 +100,22 @@ export function ScanClient() {
     router.push(`/result?lang=${lang}`);
   }
 
-  if (!payload) {
+  if (!ready) {
+    return (
+      <AppFrame lang={lang}>
+        <JourneySteps lang={lang} step={2} />
+      </AppFrame>
+    );
+  }
+
+  if (!payload || missing) {
     return (
       <AppFrame lang={lang}>
         <JourneySteps lang={lang} step={2} />
         <div className="k-card mx-auto max-w-lg p-8 text-center">
-          <p className="text-lg font-bold">{t("tagline", lang)}</p>
-          <PrimaryCta className="mt-6" onClick={() => router.push(`/?lang=${lang}`)}>
-            {t("scan", lang)}
+          <p className="text-lg font-bold">{t("noScanStored", lang)}</p>
+          <PrimaryCta className="mt-6" onClick={() => router.push(homeWithUrl(lang))}>
+            {t("backHomeKeepUrl", lang)}
           </PrimaryCta>
         </div>
       </AppFrame>

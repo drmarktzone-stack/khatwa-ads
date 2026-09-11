@@ -8,7 +8,7 @@ import { translateLines } from "@/lib/translate";
 import type { ScanPayload } from "@/lib/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   let body: { url?: string; lang?: string } = {};
@@ -19,7 +19,21 @@ export async function POST(req: Request) {
   }
 
   const lang = parseLang(body.lang);
-  const { facts, noticeKey, siteImages } = await scanBusinessUrl(body.url || "", lang);
+  const inputUrl = typeof body.url === "string" ? body.url : "";
+  const { facts, noticeKey, siteImages, error } = await scanBusinessUrl(inputUrl, lang);
+
+  if (error || !facts) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error || "fetch_failed",
+        notice: noticeText(noticeKey, lang),
+        facts: null,
+      },
+      { status: error === "invalid_url" || error === "empty_url" ? 400 : 422 },
+    );
+  }
+
   const generated = await generateArabicLines(facts);
   const translated = await translateLines(generated.lines, facts, lang);
   const composed = await composeImages(facts, lang, siteImages);
@@ -39,6 +53,8 @@ export async function POST(req: Request) {
     },
     notice: noticeText(noticeKey, lang),
     lang,
+    inputUrl,
+    scannedAt: Date.now(),
   };
 
   return NextResponse.json(payload);

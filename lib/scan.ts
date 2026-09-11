@@ -175,6 +175,17 @@ function extractServices(blob: string, niche: Niche): string[] {
   return [...found].slice(0, 6);
 }
 
+function decodeEntities(raw: string): string {
+  return raw
+    .replace(/&quot;/g, '"')
+    .replace(/&#34;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
 function extractName($: cheerio.CheerioAPI, host: string): { value: string; evidence: EvidenceLevel; snippet?: string } {
   const jsonName = allJsonLd($).map((n) => n.name).find((v) => typeof v === "string") as string | undefined;
   const ogSite = $('meta[property="og:site_name"]').attr("content");
@@ -183,7 +194,8 @@ function extractName($: cheerio.CheerioAPI, host: string): { value: string; evid
   const h1 = $("h1").first().text();
   const pick = [jsonName, ogSite, h1, ogTitle, title].find((v) => v && v.trim().length > 1);
   if (pick) {
-    const cleaned = pick.replace(/\s*[|\-–].*$/, "").trim() || pick.trim();
+    const decoded = decodeEntities(pick);
+    const cleaned = decoded.replace(/\s*[|\-–].*$/, "").trim() || decoded.trim();
     return { value: cleaned.slice(0, 80), evidence: "on_page", snippet: cleaned };
   }
   return { value: host, evidence: "hostname" };
@@ -318,10 +330,71 @@ export const DEMOS: DemoBiz[] = [
   },
 ];
 
+export const SAMPLE_CLINIC = DEMOS[0];
+export const SAMPLE_CLINIC_ID = "demo:clinic";
+export const SAMPLE_CLINIC_NAME = SAMPLE_CLINIC.name;
+
+export function demoBusinessId(slug: string): string {
+  return `demo:${slug}`;
+}
+
+export function siteBusinessId(host: string): string {
+  return `site:${host}`;
+}
+
+/** Built-in sample only — never match a live URL just because it contains "clinic" / "other". */
+export function isExplicitDemoUrl(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
+  let normalized = "";
+  try {
+    normalized = normalizeUrl(trimmed);
+  } catch {
+    normalized = trimmed;
+  }
+  return DEMOS.some((d) => {
+    const demoNorm = d.url;
+    return (
+      trimmed === d.url ||
+      normalized === demoNorm ||
+      trimmed === d.slug ||
+      trimmed === `demo:${d.slug}` ||
+      trimmed === `demo://${d.slug}`
+    );
+  });
+}
+
+export function findExplicitDemo(raw: string): DemoBiz | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  let normalized = "";
+  try {
+    normalized = normalizeUrl(trimmed);
+  } catch {
+    normalized = trimmed;
+  }
+  return DEMOS.find(
+    (d) =>
+      trimmed === d.url ||
+      normalized === d.url ||
+      trimmed === d.slug ||
+      trimmed === `demo:${d.slug}` ||
+      trimmed === `demo://${d.slug}`,
+  );
+}
+
+export function isSampleBusiness(facts: Pick<BusinessFacts, "businessId" | "name" | "usedDemo" | "url">): boolean {
+  if (facts.usedDemo) return true;
+  if (facts.businessId.startsWith("demo:")) return true;
+  if (DEMOS.some((d) => d.name === facts.name.value || d.url === facts.url)) return true;
+  return false;
+}
+
 export function factsFromDemo(demo: DemoBiz): BusinessFacts {
   return {
     url: demo.url,
     host: hostFromUrl(demo.url),
+    businessId: demoBusinessId(demo.slug),
     name: field(demo.name, "demo", "demo.name"),
     phone: field(demo.phone, "demo", "demo.phone"),
     phones: [demo.phone],
@@ -338,35 +411,13 @@ export function factsFromDemo(demo: DemoBiz): BusinessFacts {
   };
 }
 
-function hostnameFacts(url: string): BusinessFacts {
-  const host = hostFromUrl(url);
-  const pretty = host.split(".")[0].replace(/[-_]/g, " ");
-  return {
-    url,
-    host,
-    name: field(pretty || host, "hostname", host),
-    phone: field(null, "missing"),
-    phones: [],
-    whatsapp: field(null, "missing"),
-    place: field(null, "missing"),
-    hours: field(null, "missing"),
-    services: [],
-    servicesEvidence: "missing",
-    description: field(null, "missing"),
-    niche: "out_of_niche",
-    fetched: false,
-    usedDemo: false,
-    sourceTitle: null,
-  };
-}
-
-async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string } | null> {
+async function fetchHtmlOnce(url: string, userAgent: string): Promise<{ html: string; finalUrl: string } | null> {
   try {
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(12000),
       redirect: "follow",
       headers: {
-        "User-Agent": "KhatwaAdsScanner/1.0 (honest-facts; +https://github.com/drmarktzone-stack/khatwa-ads)",
+        "User-Agent": userAgent,
         Accept: "text/html,application/xhtml+xml",
       },
     });
@@ -378,30 +429,56 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string 
   }
 }
 
-export type NoticeKey = "ok" | "demo" | "empty_used_demo" | "invalid_used_demo" | "fetch_failed" | "out_of_niche";
+async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string } | null> {
+  const agents = [
+    "KhatwaAdsScanner/1.1 (honest-facts; +https://github.com/drmarktzone-stack/khatwa-ads)",
+    "Mozilla/5.0 (compatible; KhatwaAdsBot/1.1; +https://github.com/drmarktzone-stack/khatwa-ads)",
+  ];
+  for (const ua of agents) {
+    const got = await fetchHtmlOnce(url, ua);
+    if (got) return got;
+  }
+  return null;
+}
 
-export async function scanBusinessUrl(
-  rawUrl: string,
-  _lang: Lang,
-): Promise<{ facts: BusinessFacts; noticeKey: NoticeKey; siteImages: string[] }> {
+export type NoticeKey =
+  | "ok"
+  | "demo"
+  | "empty_used_demo"
+  | "empty_url"
+  | "invalid_used_demo"
+  | "invalid_url"
+  | "fetch_failed"
+  | "out_of_niche";
+
+export type ScanErrorCode = "invalid_url" | "fetch_failed" | "empty_url";
+
+export type ScanOutcome = {
+  facts: BusinessFacts | null;
+  noticeKey: NoticeKey;
+  siteImages: string[];
+  error?: ScanErrorCode;
+};
+
+export async function scanBusinessUrl(rawUrl: string, _lang: Lang): Promise<ScanOutcome> {
   const trimmed = rawUrl.trim();
   if (!trimmed) {
-    return { facts: factsFromDemo(DEMOS[0]), noticeKey: "empty_used_demo", siteImages: DEMOS[0].images };
+    return { facts: null, noticeKey: "empty_url", siteImages: [], error: "empty_url" };
   }
 
-  const demo = DEMOS.find((d) => trimmed.includes(d.slug) || trimmed === d.url || normalizeUrl(trimmed) === d.url);
+  const demo = findExplicitDemo(trimmed);
   if (demo) {
     return { facts: factsFromDemo(demo), noticeKey: "demo", siteImages: demo.images };
   }
 
   if (!looksLikeUrl(trimmed)) {
-    return { facts: factsFromDemo(DEMOS[0]), noticeKey: "invalid_used_demo", siteImages: DEMOS[0].images };
+    return { facts: null, noticeKey: "invalid_url", siteImages: [], error: "invalid_url" };
   }
 
   const url = normalizeUrl(trimmed);
   const fetched = await fetchHtml(url);
   if (!fetched) {
-    return { facts: hostnameFacts(url), noticeKey: "fetch_failed", siteImages: [] };
+    return { facts: null, noticeKey: "fetch_failed", siteImages: [], error: "fetch_failed" };
   }
 
   const $ = cheerio.load(fetched.html);
@@ -423,6 +500,7 @@ export async function scanBusinessUrl(
   const facts: BusinessFacts = {
     url: fetched.finalUrl,
     host,
+    businessId: siteBusinessId(host),
     name: field(name.value, name.evidence, name.snippet),
     phone: field(phones[0] || null, phones[0] ? "on_page" : "missing", phones[0]),
     phones,

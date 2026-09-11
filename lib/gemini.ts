@@ -1,4 +1,5 @@
-import { buildCopyLines } from "./copy-engine";
+import { buildCopyLines, sanitizeGeneratedLines } from "./niches/copy";
+import { getNiche, nicheLabel, safeDisplayName } from "./niches";
 import { gcpConfig, vertexGenerate } from "./gcp";
 import { assertDistinct, dedupeLines, looksLikeChrome } from "./guards";
 import type { BusinessFacts, CopyLine, Lang } from "./types";
@@ -11,18 +12,31 @@ interface GeminiLine {
 }
 
 function promptAr(facts: BusinessFacts): string {
+  const def = getNiche(facts.niche);
+  const name = safeDisplayName(facts);
+  const angles = def.copy.map((s) => s.angle).slice(0, 24).join(", ");
   return `Write Meta ad lines for a local business in Palestinian colloquial Arabic (اللهجة الفلسطينية).
 FACTS ONLY. Never invent phone, place, hours, services, prices, discounts, or ROAS.
 If a fact is missing, do not mention it.
+Never invent Jerusalem / القدس / ירושלים unless FACTS.place already contains it.
+Never use a marketing slogan as the business name. «طفلك بخير وقلبك مرتاح» is USP/description ONLY — never the name.
+Use this name only: "${name}". Pediatric / Samer / عيادتي sites brand as عيادتي. Doctor name may appear as a fact, not as a slogan-name.
+Clalit/insurance only if present in FACTS.insurance.
+Banned phones as the shop number: 100, 101, 911.
+Niche is exactly "${facts.niche}" (${nicheLabel(facts.niche, "ar")}). Use this niche's angles only. Do not dump clinic hooks on a restaurant or dental lines on a plumber.
+Warehouse angles to vary: ${angles}
+CTA style: ${def.ctaStyle} (WhatsApp and/or call — only if a real phone exists).
 No engine slogans, no "facts engine", no "scan again", no Facebook chrome (Sponsored/Like/Comment/Share).
 No repeated CTAs. Each text unique. Each ctaLabel unique.
 Return JSON array of at least 22 objects: {kind: headline|hook|cta, text, angle, ctaLabel}
-Angles must include name, place (if present), WhatsApp/phone (if present), pain, and a USP from listed services only.
 
 FACTS:
 ${JSON.stringify(
     {
-      name: facts.name.value,
+      name,
+      doctorName: facts.doctorName.value,
+      slogan: facts.slogan.value,
+      insurance: facts.insurance.value,
       phones: facts.phones,
       whatsapp: facts.whatsapp.value,
       place: facts.place.value,
@@ -42,20 +56,23 @@ ${JSON.stringify(
   )}`;
 }
 
-function parseLines(raw: string): CopyLine[] | null {
+function parseLines(raw: string, facts: BusinessFacts): CopyLine[] | null {
   const jsonMatch = raw.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return null;
   try {
     const parsed = JSON.parse(jsonMatch[0]) as GeminiLine[];
     if (!Array.isArray(parsed) || parsed.length < 20) return null;
-    const lines = dedupeLines(
-      parsed.map((row, i) => ({
-        id: `gem-${row.kind}-${row.angle || i}`,
-        kind: row.kind,
-        text: String(row.text || "").trim(),
-        angle: String(row.angle || `a${i}`),
-        ctaLabel: String(row.ctaLabel || "").trim() || String(row.text || "").trim(),
-      })),
+    const lines = sanitizeGeneratedLines(
+      dedupeLines(
+        parsed.map((row, i) => ({
+          id: `gem-${row.kind}-${row.angle || i}`,
+          kind: row.kind,
+          text: String(row.text || "").trim(),
+          angle: String(row.angle || `a${i}`),
+          ctaLabel: String(row.ctaLabel || "").trim() || String(row.text || "").trim(),
+        })),
+      ),
+      facts,
     );
     if (lines.some((l) => looksLikeChrome(l.text))) return null;
     if (!assertDistinct(lines)) return null;
@@ -81,7 +98,7 @@ export async function generateArabicLines(
       grounded = false;
     }
     if (!raw) return { lines: fallback, usedGemini: false, usedGrounding: false };
-    const parsed = parseLines(raw);
+    const parsed = parseLines(raw, facts);
     if (!parsed) return { lines: fallback, usedGemini: false, usedGrounding: false };
     return { lines: parsed, usedGemini: true, usedGrounding: grounded };
   } catch {

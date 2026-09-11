@@ -47,8 +47,11 @@ export function BusinessCard({ payload, lang }: { payload: ScanPayload; lang: La
             {facts.url}
           </p>
         </div>
-        <span className="rounded-full bg-khatwa-yellow px-3 py-1 text-sm font-extrabold text-khatwa-ink">
-          {nicheLabel(facts.niche, lang)}
+        <span
+          data-niche-badge={facts.niche}
+          className="rounded-full bg-khatwa-yellow px-3 py-1 text-sm font-extrabold text-khatwa-ink"
+        >
+          {t("nicheBadge", lang)}: {nicheLabel(facts.niche, lang)}
         </span>
       </div>
       <p className="mt-4 rounded-2xl bg-khatwa-yellow-soft px-4 py-3 text-sm font-medium">{payload.notice}</p>

@@ -23,6 +23,8 @@ export interface FactField {
 export interface BusinessFacts {
   url: string;
   host: string;
+  /** `demo:<slug>` for built-in samples, `site:<host>` for a live scan. */
+  businessId: string;
   name: FactField;
   phone: FactField;
   phones: string[];
@@ -71,6 +73,9 @@ export interface ScanPayload {
   tools: ToolFlags;
   notice: string | null;
   lang: Lang;
+  /** The URL the user submitted (empty string only for the empty-URL sample path). */
+  inputUrl?: string;
+  scannedAt?: number;
 }
 
 export interface SelectionState {

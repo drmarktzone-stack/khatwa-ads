@@ -16,11 +16,13 @@ Arabic (`ar`) is Palestinian colloquial and the generation base. `he` / `en` are
 
 ## Journey
 
-1. `/?lang=ar|he|en` — paste a URL (or tap a niche sample) and scan.
+1. `/?lang=ar|he|en` — paste a URL and **امسح الموقع**. Niche tiles labeled **عيّنة** are a separate demo path.
 2. `/scan` — honest business card + copy marketplace + image grid (site photos first, unique captions).
 3. `/result` — selected lines, copy-all, `.txt` pack, **1:1 feed** and **9:16 story** frames with PNG download.
 
-`ar` and `he` render RTL. Buttons never sit grey with no action: the primary CTA always continues (empty picks auto-fill; empty URL uses a clinic sample).
+`ar` and `he` render RTL. Buttons never sit grey with no action: the primary CTA always continues (empty picks auto-fill).
+
+**Scan vs عيّنة:** Pasting a real URL and clicking Scan calls `POST /api/scan` and keeps that business in `sessionStorage` + `localStorage`. A non-empty URL is **never** replaced by the built-in clinic sample. If the scan fails, the form shows an error and **أعيد المحاولة** with the same URL still in the box. The empty-URL path (or an explicit **عيّنة** tile) is the only way to load a demo business.
 
 ## Smart tools (all optional, all degrade)
 
@@ -43,6 +45,7 @@ Next.js App Router, TypeScript, Tailwind. Cloud Run ready (`PORT=8080`). Works o
 ```bash
 npm install
 npm run dev
+npm test
 npm run build
 PORT=8080 npm start
 ```
@@ -77,6 +80,8 @@ gcloud run deploy khatwa-ads \
 ```
 
 `Dockerfile` uses Next.js `output: "standalone"`. Health: `GET /api/health` (also reports which tools look configured).
+
+**Deploy note:** this repo may not auto-deploy to Cloud Run. After merge to `main`, the owner deploys service `khatwa-ads` in project `project-8fd8a005-ae6d-4139-ab4`, region `me-west1` (live: `https://khatwa-ads-308665814452.me-west1.run.app`). Confirm a real URL scan shows that site’s name / place / phone — not عيّنة «عيادة سنّة البيضا».
 
 ## License
 

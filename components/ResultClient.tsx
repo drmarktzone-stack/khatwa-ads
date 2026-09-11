@@ -8,7 +8,7 @@ import { JourneySteps } from "@/components/JourneySteps";
 import { PrimaryCta } from "@/components/PrimaryCta";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
-import { defaultSelection, loadScan, loadSelection } from "@/lib/session";
+import { defaultSelection, loadScan, loadSelection, saveScan, saveSelection } from "@/lib/session";
 import type { ScanPayload, SelectionState } from "@/lib/types";
 
 function packText(payload: ScanPayload, sel: SelectionState, lang: ReturnType<typeof parseLang>): string {
@@ -54,6 +54,8 @@ export function ResultClient() {
     const stored = loadScan();
     if (!stored) return;
     const selection = loadSelection() || defaultSelection(stored);
+    saveScan(stored);
+    saveSelection(selection);
     setPayload(stored);
     setSel(selection);
   }, []);

@@ -3,14 +3,41 @@ import type { ScanPayload, SelectionState } from "./types";
 const SCAN_KEY = "khatwa.scan";
 const SEL_KEY = "khatwa.selection";
 
-export function saveScan(payload: ScanPayload) {
+function writeBoth(key: string, value: string) {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(SCAN_KEY, JSON.stringify(payload));
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* quota / private mode */
+  }
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function readPreferSession(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const fromSession = sessionStorage.getItem(key);
+    if (fromSession) return fromSession;
+  } catch {
+    /* ignore */
+  }
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function saveScan(payload: ScanPayload) {
+  writeBoth(SCAN_KEY, JSON.stringify(payload));
 }
 
 export function loadScan(): ScanPayload | null {
-  if (typeof window === "undefined") return null;
-  const raw = sessionStorage.getItem(SCAN_KEY);
+  const raw = readPreferSession(SCAN_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as ScanPayload;
@@ -20,13 +47,11 @@ export function loadScan(): ScanPayload | null {
 }
 
 export function saveSelection(sel: SelectionState) {
-  if (typeof window === "undefined") return;
-  sessionStorage.setItem(SEL_KEY, JSON.stringify(sel));
+  writeBoth(SEL_KEY, JSON.stringify(sel));
 }
 
 export function loadSelection(): SelectionState | null {
-  if (typeof window === "undefined") return null;
-  const raw = sessionStorage.getItem(SEL_KEY);
+  const raw = readPreferSession(SEL_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as SelectionState;

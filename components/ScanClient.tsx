@@ -26,8 +26,10 @@ export function ScanClient() {
     const stored = loadScan();
     if (!stored) return;
     if (!stored.baseLines) stored.baseLines = stored.lines;
+    saveScan(stored);
     setPayload(stored);
     const sel = loadSelection() || defaultSelection(stored);
+    saveSelection(sel);
     setLineIds(sel.lineIds);
     setImageIds(sel.imageIds);
   }, []);

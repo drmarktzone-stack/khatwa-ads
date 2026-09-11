@@ -7,9 +7,9 @@ import { UrlForm } from "@/components/UrlForm";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
 import { nicheLabel } from "@/lib/niches";
+import { acceptScanPayload } from "@/lib/scan-accept";
 import { DEMOS } from "@/lib/scan";
 import { defaultSelection, saveScan, saveSelection } from "@/lib/session";
-import type { ScanPayload } from "@/lib/types";
 import { useRouter } from "next/navigation";
 
 export function HomeClient() {
@@ -22,9 +22,16 @@ export function HomeClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url, lang }),
     });
-    const data = (await res.json()) as ScanPayload;
-    saveScan(data);
-    saveSelection(defaultSelection(data));
+    let data: unknown = null;
+    try {
+      data = await res.json();
+    } catch {
+      return;
+    }
+    const accepted = acceptScanPayload(url, res.ok, data);
+    if (!accepted.ok) return;
+    saveScan(accepted.payload);
+    saveSelection(defaultSelection(accepted.payload));
     router.push(`/scan?lang=${lang}`);
   }
 
@@ -60,10 +67,15 @@ export function HomeClient() {
               type="button"
               onClick={() => void runDemo(demo.url)}
               className="k-card overflow-hidden text-start transition hover:-translate-y-0.5"
+              data-sample-entry="true"
+              aria-label={`${t("sampleBadge", lang)}: ${demo.name}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={demo.images[0]} alt={demo.name} className="h-28 w-full object-cover" />
+              <img src={demo.images[0]} alt="" className="h-28 w-full object-cover" />
               <div className="p-4">
+                <p className="mb-2 inline-flex rounded-full bg-khatwa-yellow px-2 py-0.5 text-xs font-extrabold">
+                  {t("sampleBadge", lang)}
+                </p>
                 <p className="font-extrabold">{demo.name}</p>
                 <p className="mt-1 text-sm text-khatwa-mute">
                   {demo.place} ·{" "}

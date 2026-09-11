@@ -445,12 +445,13 @@ export type NoticeKey =
   | "ok"
   | "demo"
   | "empty_used_demo"
+  | "empty_url"
   | "invalid_used_demo"
   | "invalid_url"
   | "fetch_failed"
   | "out_of_niche";
 
-export type ScanErrorCode = "invalid_url" | "fetch_failed";
+export type ScanErrorCode = "invalid_url" | "fetch_failed" | "empty_url";
 
 export type ScanOutcome = {
   facts: BusinessFacts | null;
@@ -462,7 +463,7 @@ export type ScanOutcome = {
 export async function scanBusinessUrl(rawUrl: string, _lang: Lang): Promise<ScanOutcome> {
   const trimmed = rawUrl.trim();
   if (!trimmed) {
-    return { facts: factsFromDemo(DEMOS[0]), noticeKey: "empty_used_demo", siteImages: DEMOS[0].images };
+    return { facts: null, noticeKey: "empty_url", siteImages: [], error: "empty_url" };
   }
 
   const demo = findExplicitDemo(trimmed);

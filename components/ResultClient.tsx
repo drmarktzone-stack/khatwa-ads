@@ -8,7 +8,8 @@ import { JourneySteps } from "@/components/JourneySteps";
 import { PrimaryCta } from "@/components/PrimaryCta";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
-import { defaultSelection, loadScan, loadSelection, saveScan, saveSelection } from "@/lib/session";
+import { resolveMarketplacePayload } from "@/lib/scan-accept";
+import { defaultSelection, loadDraftUrl, loadLastScanUrl, loadScan, loadSelection, saveScan, saveSelection } from "@/lib/session";
 import type { ScanPayload, SelectionState } from "@/lib/types";
 
 function packText(payload: ScanPayload, sel: SelectionState, lang: ReturnType<typeof parseLang>): string {
@@ -52,11 +53,12 @@ export function ResultClient() {
 
   useEffect(() => {
     const stored = loadScan();
-    if (!stored) return;
-    const selection = loadSelection() || defaultSelection(stored);
-    saveScan(stored);
+    const resolved = resolveMarketplacePayload(stored, loadLastScanUrl() || loadDraftUrl());
+    if (resolved.kind !== "ok") return;
+    const selection = loadSelection() || defaultSelection(resolved.payload);
+    saveScan(resolved.payload);
     saveSelection(selection);
-    setPayload(stored);
+    setPayload(resolved.payload);
     setSel(selection);
   }, []);
 
@@ -72,9 +74,17 @@ export function ResultClient() {
       <AppFrame lang={lang}>
         <JourneySteps lang={lang} step={3} />
         <div className="k-card mx-auto max-w-lg p-8 text-center">
-          <p className="text-lg font-bold">{t("emptyPick", lang)}</p>
-          <PrimaryCta className="mt-6" onClick={() => router.push(`/?lang=${lang}`)}>
-            {t("scan", lang)}
+          <p className="text-lg font-bold">{t("noScanStored", lang)}</p>
+          <PrimaryCta
+            className="mt-6"
+            onClick={() => {
+              const draft = loadDraftUrl().trim();
+              const q = new URLSearchParams({ lang });
+              if (draft) q.set("url", draft);
+              router.push(`/?${q.toString()}`);
+            }}
+          >
+            {t("backHomeKeepUrl", lang)}
           </PrimaryCta>
         </div>
       </AppFrame>

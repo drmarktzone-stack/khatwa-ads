@@ -9,11 +9,13 @@ import { parseLang } from "@/lib/lang";
 import { nicheLabel } from "@/lib/niches";
 import { acceptScanPayload } from "@/lib/scan-accept";
 import { DEMOS } from "@/lib/scan";
-import { defaultSelection, saveScan, saveSelection } from "@/lib/session";
+import { defaultSelection, saveLastScanUrl, saveScan, saveSelection } from "@/lib/session";
 import { useRouter } from "next/navigation";
 
 export function HomeClient() {
-  const lang = parseLang(useSearchParams().get("lang"));
+  const params = useSearchParams();
+  const lang = parseLang(params.get("lang"));
+  const initialUrl = params.get("url") || "";
   const router = useRouter();
 
   async function runDemo(url: string) {
@@ -30,6 +32,7 @@ export function HomeClient() {
     }
     const accepted = acceptScanPayload(url, res.ok, data);
     if (!accepted.ok) return;
+    saveLastScanUrl(url);
     saveScan(accepted.payload);
     saveSelection(defaultSelection(accepted.payload));
     router.push(`/scan?lang=${lang}`);
@@ -53,7 +56,7 @@ export function HomeClient() {
           <p className="mt-4 text-sm font-medium text-khatwa-green">{t("noStuck", lang)}</p>
         </div>
         <div className="pattern-dots rounded-[2rem] border border-khatwa-line bg-white/70 p-4 sm:p-6">
-          <UrlForm lang={lang} />
+          <UrlForm lang={lang} initialUrl={initialUrl} />
         </div>
       </section>
 

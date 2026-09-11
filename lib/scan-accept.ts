@@ -14,20 +14,38 @@ function isScanPayload(data: unknown): data is ScanPayload {
 }
 
 /**
- * A non-empty live URL must never be replaced by a built-in sample business.
- * Empty URL and explicit demo URLs may carry the sample clinic.
+ * Only an explicit demo URL (exact demo host / demo:slug) may carry a sample business.
+ * Empty URL and any live URL must never be accepted as the built-in clinic.
  */
 export function acceptScanPayload(inputUrl: string, resOk: boolean, data: unknown): AcceptScanResult {
   if (!resOk) return { ok: false, reason: "http" };
   if (!isScanPayload(data)) return { ok: false, reason: "invalid" };
 
   const trimmed = inputUrl.trim();
-  const explicitDemo = Boolean(trimmed && findExplicitDemo(trimmed));
-  if (trimmed && !explicitDemo && isSampleBusiness(data.facts)) {
+  const explicitDemo = Boolean(findExplicitDemo(trimmed));
+  if (!explicitDemo && isSampleBusiness(data.facts)) {
     return { ok: false, reason: "rejected_demo" };
   }
 
   return { ok: true, payload: { ...data, inputUrl: trimmed, scannedAt: data.scannedAt ?? Date.now() } };
+}
+
+export type MarketplaceResolve =
+  | { kind: "ok"; payload: ScanPayload }
+  | { kind: "empty" }
+  | { kind: "rejected_demo" };
+
+/** Marketplace reads session facts only — never injects DEMOS. */
+export function resolveMarketplacePayload(
+  stored: ScanPayload | null,
+  lastScanUrl: string | null,
+): MarketplaceResolve {
+  if (!stored?.facts) return { kind: "empty" };
+  const attempted = (lastScanUrl || stored.inputUrl || "").trim();
+  if (attempted && !findExplicitDemo(attempted) && isSampleBusiness(stored.facts)) {
+    return { kind: "rejected_demo" };
+  }
+  return { kind: "ok", payload: stored };
 }
 
 export function liveUrlMustNotBeSample(inputUrl: string, payload: ScanPayload): boolean {

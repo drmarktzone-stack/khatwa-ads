@@ -2,6 +2,8 @@ import type { ScanPayload, SelectionState } from "./types";
 
 const SCAN_KEY = "khatwa.scan";
 const SEL_KEY = "khatwa.selection";
+const DRAFT_KEY = "khatwa.draftUrl";
+const LAST_SCAN_KEY = "khatwa.lastScanUrl";
 
 function writeBoth(key: string, value: string) {
   if (typeof window === "undefined") return;
@@ -58,6 +60,22 @@ export function loadSelection(): SelectionState | null {
   } catch {
     return null;
   }
+}
+
+export function saveDraftUrl(url: string) {
+  writeBoth(DRAFT_KEY, url);
+}
+
+export function loadDraftUrl(): string {
+  return readPreferSession(DRAFT_KEY) || "";
+}
+
+export function saveLastScanUrl(url: string) {
+  writeBoth(LAST_SCAN_KEY, url);
+}
+
+export function loadLastScanUrl(): string {
+  return readPreferSession(LAST_SCAN_KEY) || "";
 }
 
 export function defaultSelection(payload: ScanPayload): SelectionState {

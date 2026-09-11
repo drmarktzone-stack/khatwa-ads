@@ -30,7 +30,7 @@ export async function POST(req: Request) {
         notice: noticeText(noticeKey, lang),
         facts: null,
       },
-      { status: error === "invalid_url" ? 400 : 422 },
+      { status: error === "invalid_url" || error === "empty_url" ? 400 : 422 },
     );
   }
 

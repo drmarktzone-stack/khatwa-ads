@@ -51,9 +51,34 @@ const D: Dict = {
     en: "The scan returned a sample by mistake. We did not continue with it — retry the same URL.",
   },
   pasteOrSample: {
-    ar: "لزّق رابط موقعك فوق، أو اضغط «عيّنة» إذا بدك تجربة توضيحية.",
-    he: "הדביקו קישור למעלה, או לחצו «דוגמה» לניסיון.",
-    en: "Paste your site URL above, or tap “Sample” for a labeled demo.",
+    ar: "لزّق رابط موقعك فوق. العيّنة زر منفصل تحت — مش بدال المسح.",
+    he: "הדביקו קישור למעלה. הדוגמה נפרדת — לא במקום הסריקה.",
+    en: "Paste your site URL above. Sample is a separate control — not a stand-in for Scan.",
+  },
+  needUrl: {
+    ar: "لزّق رابط الموقع أول. زر المسح ما بحمّل عيّنة لحالو.",
+    he: "הדביקו קודם קישור. כפתור הסריקה לא טוען דוגמה לבד.",
+    en: "Paste a site URL first. Scan will not load a sample on its own.",
+  },
+  separateSample: {
+    ar: "جرّب عيّنة منفصلة",
+    he: "נסו דוגמה נפרדת",
+    en: "Try a separate sample",
+  },
+  scanProgress: {
+    ar: "عم نقرأ الصفحة… الرابط بعدو محفوظ. ما رح نبدّلو بعيّنة.",
+    he: "קוראים את העמוד… הקישור נשמר. לא נחליף בדוגמה.",
+    en: "Reading the page… your URL is kept. We will not swap in a sample.",
+  },
+  noScanStored: {
+    ar: "ما في مسح محفوظ لهالرابط. ارجع للرئيسية — الرابط بعدو هون. ما حمّلناش العيّنة.",
+    he: "אין סריקה שמורה. חזרו לדף הבית — הקישור נשמר. לא טענו דוגמה.",
+    en: "No scan is stored for this visit. Back home — your URL is kept. We did not load a sample.",
+  },
+  backHomeKeepUrl: {
+    ar: "ارجع للرئيسية مع الرابط",
+    he: "חזרה הביתה עם הקישור",
+    en: "Back home with the URL",
   },
   frame11: { ar: "إطار مربع 1:1", he: "פריים 1:1", en: "1:1 feed frame" },
   frame916: { ar: "إطار ستوري 9:16", he: "פריים 9:16", en: "9:16 story frame" },
@@ -117,6 +142,11 @@ const D: Dict = {
     ar: "ما لزّقت رابط — كمّلناك بعيّنة عيادة عشان ما تعلق.",
     he: "לא הודבק קישור — המשכנו עם דוגמת מרפאה כדי לא לתקוע.",
     en: "No URL pasted — we filled a clinic sample so you are not stuck.",
+  },
+  notice_empty_url: {
+    ar: "ما لزّقت رابط. المسح ما برجع عيّنة كأنها موقعك — لزّق عنوان أو اضغط «عيّنة» لحاله.",
+    he: "לא הודבק קישור. הסריקה לא תחזיר דוגמה כאילו זה האתר שלכם.",
+    en: "No URL pasted. Scan will not return a sample as if it were your site.",
   },
   notice_invalid_used_demo: {
     ar: "الرابط ما انقرأ — كمّلناك بعيّنة عيادة. جرّب رابط أوضح لما تحب.",

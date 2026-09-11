@@ -22,7 +22,7 @@ Arabic (`ar`) is Palestinian colloquial and the generation base. `he` / `en` are
 
 `ar` and `he` render RTL. Buttons never sit grey with no action: the primary CTA always continues (empty picks auto-fill).
 
-**Scan vs عيّنة:** Pasting a real URL and clicking Scan calls `POST /api/scan` and keeps that business in `sessionStorage` + `localStorage`. A non-empty URL is **never** replaced by the built-in clinic sample. If the scan fails, the form shows an error and **أعيد المحاولة** with the same URL still in the box. The empty-URL path (or an explicit **عيّنة** tile) is the only way to load a demo business.
+**Scan vs عيّنة:** Pasting a real URL and clicking Scan calls `POST /api/scan` and keeps that business in `sessionStorage` + `localStorage`. An empty or live URL is **never** returned or shown as the built-in clinic sample. If the scan fails, **أعيد المحاولة** is the primary action (same URL stays in the box). Sample is only an explicit **عيّنة** tile or the secondary link **جرّب عيّنة منفصلة** — never a mid-scan button, and it does not overwrite the typed URL. `/scan` with no stored payload shows an error and returns home with the URL; it does not inject the demo clinic.
 
 ## Smart tools (all optional, all degrade)
 

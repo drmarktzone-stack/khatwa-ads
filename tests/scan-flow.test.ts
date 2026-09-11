@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { acceptScanPayload, liveUrlMustNotBeSample } from "../lib/scan-accept";
+import { acceptScanPayload, liveUrlMustNotBeSample, resolveMarketplacePayload } from "../lib/scan-accept";
 import {
   DEMOS,
   SAMPLE_CLINIC_ID,
@@ -86,13 +86,12 @@ test("explicit demo match is exact URL or slug — not a substring like clinic/o
   assert.equal(findExplicitDemo("https://another-site.com"), undefined);
 });
 
-test("empty URL may use the sample clinic; non-empty live URL must not", async () => {
+test("empty URL is an error — API never silently returns the sample clinic", async () => {
   const empty = await scanBusinessUrl("", "ar");
-  assert.ok(empty.facts);
-  assert.equal(empty.facts.usedDemo, true);
-  assert.equal(empty.facts.businessId, SAMPLE_CLINIC_ID);
-  assert.equal(empty.facts.name.value, SAMPLE_CLINIC_NAME);
-  assert.equal(empty.noticeKey, "empty_used_demo");
+  assert.equal(empty.facts, null);
+  assert.equal(empty.error, "empty_url");
+  assert.equal(empty.noticeKey, "empty_url");
+  assert.notEqual(empty.noticeKey, "empty_used_demo");
 
   const invalid = await scanBusinessUrl("not a url at all", "ar");
   assert.equal(invalid.facts, null);
@@ -126,8 +125,9 @@ test("acceptScanPayload: non-empty URL never yields sample business id/name", ()
     assert.equal(sample.facts.name.value, SAMPLE_CLINIC_NAME);
   }
 
-  const emptyOk = acceptScanPayload("", true, sample);
-  assert.equal(emptyOk.ok, true);
+  const emptyRejected = acceptScanPayload("", true, sample);
+  assert.equal(emptyRejected.ok, false);
+  if (!emptyRejected.ok) assert.equal(emptyRejected.reason, "rejected_demo");
 
   const explicitOk = acceptScanPayload(DEMOS[0].url, true, sample);
   assert.equal(explicitOk.ok, true);
@@ -172,5 +172,20 @@ test("scan flow with live clinic URLs never yields the sample clinic", async (t)
       });
       assert.equal(accepted.ok, true);
     });
+  }
+});
+
+test("marketplace never auto-injects the sample clinic", () => {
+  assert.equal(resolveMarketplacePayload(null, "https://www.ram.dental/").kind, "empty");
+  const hijack = resolveMarketplacePayload(demoPayload(), "https://www.ram.dental/");
+  assert.equal(hijack.kind, "rejected_demo");
+  const explicit = resolveMarketplacePayload(demoPayload(), DEMOS[0].url);
+  assert.equal(explicit.kind, "ok");
+  const live = liveishPayload("https://www.ram.dental/", "ד\"ר אלון רם");
+  const ok = resolveMarketplacePayload(live, "https://www.ram.dental/");
+  assert.equal(ok.kind, "ok");
+  if (ok.kind === "ok") {
+    assert.equal(ok.payload.facts.usedDemo, false);
+    assert.notEqual(ok.payload.facts.name.value, SAMPLE_CLINIC_NAME);
   }
 });

@@ -8,16 +8,35 @@ Owner: [drmarktzone-stack](https://github.com/drmarktzone-stack)
 
 ## Product
 
-One sitting. One green path: **URL → scan → pick → export**. No invented prices, phones, cities, hours, or ROAS. Missing fields stay “not found on the site”. Out-of-niche businesses get a soft message and general lines from the page only.
-
-**Niches:** clinics / dental / aesthetic, tutoring, restaurants & cafés, renovation / contractors, boutique fitness.
+One sitting. One green path: **URL → scan → pick → export**. No invented prices, phones, cities, hours, or ROAS. Missing fields stay “not found on the site”. Out-of-list businesses get a **soft gate** and general lines from the page only — never a fake specialty dump.
 
 Arabic (`ar`) is Palestinian colloquial and the generation base. `he` / `en` are translations of that base (Cloud Translation or Gemini when keys exist; otherwise the facts engine in that language).
+
+## The 10 niches (only)
+
+| id | AR | HE | EN |
+| --- | --- | --- | --- |
+| `lawyers` | محامون | עורכי דין | Lawyers |
+| `real_estate_agents` | وسطاء عقارات محليون | תיווך | Local real-estate agents |
+| `medical_clinics` | عيادات طبية | מרפאות | Medical clinics |
+| `dental` | عيادات أسنان | שיניים | Dental |
+| `beauty_aesthetic` | تجميل وصالونات | אסתטיקה ומספרות | Beauty & aesthetic |
+| `contractors` | مقاولون وتجديد | שיפוצים | Contractors & renovation |
+| `tutoring` | دروس خصوصية | שיעורים פרטיים | Tutoring |
+| `restaurants` | مطاعم ومقاهي | מסעדות | Restaurants & cafés |
+| `fitness` | صالات ومدربون | כושר | Gyms & trainers |
+| `home_trades` | خدمات بيت طارئة | שירותי בית דחופים | Urgent home trades (plumb / elec / HVAC) |
+
+Registry: `lib/niches/` — labels, detect keywords, **≥30** copy templates per niche (`{name}` `{place}` `{phone}` `{service}`), image motifs + stock query packs, scan-field priority, CTA style (WhatsApp / call). Scan maps a site to **one** of the 10.
+
+**Medical brand law:** `عيادتي` or a doctor name (`د.سامر`) is OK. A slogan such as «طفلك بخير وقلبك مرتاح» is **never** the business name. Never invent **القدس / Jerusalem**. Never treat **100 / 101 / 911** as the shop phone.
+
+Hard check: `https://drsamerped.ai.studio` → `medical_clinics`, name `د.سامر` or `عيادتي`, place `باقة الغربية`, real phones only.
 
 ## Journey
 
 1. `/?lang=ar|he|en` — paste a URL and **امسح الموقع**. Niche tiles labeled **عيّنة** are a separate demo path.
-2. `/scan` — honest business card + copy marketplace + image grid (site photos first, unique captions).
+2. `/scan` — honest business card with a **niche badge**, copy marketplace **grouped by niche angles**, image grid (site photos first, unique captions).
 3. `/result` — selected lines, copy-all, `.txt` pack, **1:1 feed** and **9:16 story** frames with PNG download.
 
 `ar` and `he` render RTL. Buttons never sit grey with no action: the primary CTA always continues (empty picks auto-fill).
@@ -29,8 +48,8 @@ Arabic (`ar`) is Palestinian colloquial and the generation base. `he` / `en` are
 | Tool | What it does | Without keys |
 | --- | --- | --- |
 | URL scan | Name, phones, WhatsApp, services, place, **hours**, site images — extract only | Domain name + “not found” |
-| Copy | Vertex **gemini-2.5-flash** + Search Grounding, facts-only | ≥20 distinct Palestinian-AR lines (name / place / WhatsApp / pain / USP) |
-| Images | Site images first; niche stock with unique captions; optional **gemini-2.5-flash-image** / Imagen | Stock + unique captions |
+| Copy | Per-niche warehouse + Vertex **gemini-2.5-flash** + Search Grounding, facts-only | ≥20 distinct Palestinian-AR lines from that niche’s warehouse |
+| Images | Site images first; **per-niche motifs** + unique captions; optional **gemini-2.5-flash-image** / Imagen | Motif stock + unique captions |
 | Translate | Cloud Translation or Gemini from the AR base | Facts-engine HE/EN |
 | Export | Text pack + 1:1 / 9:16 frames | Always local |
 
@@ -81,7 +100,18 @@ gcloud run deploy khatwa-ads \
 
 `Dockerfile` uses Next.js `output: "standalone"`. Health: `GET /api/health` (also reports which tools look configured).
 
-**Deploy note:** this repo may not auto-deploy to Cloud Run. After merge to `main`, the owner deploys service `khatwa-ads` in project `project-8fd8a005-ae6d-4139-ab4`, region `me-west1` (live: `https://khatwa-ads-308665814452.me-west1.run.app`). Confirm a real URL scan shows that site’s name / place / phone — not عيّنة «عيادة سنّة البيضا».
+**Deploy note:** this repo may not auto-deploy to Cloud Run. After merge to `main`, the owner deploys service `khatwa-ads` in project `project-8fd8a005-ae6d-4139-ab4`, region `me-west1` (live: `https://khatwa-ads-308665814452.me-west1.run.app`).
+
+```bash
+gcloud builds submit --tag me-west1-docker.pkg.dev/project-8fd8a005-ae6d-4139-ab4/khatwa/khatwa-ads
+gcloud run deploy khatwa-ads \
+  --image me-west1-docker.pkg.dev/project-8fd8a005-ae6d-4139-ab4/khatwa/khatwa-ads \
+  --region me-west1 \
+  --port 8080 \
+  --allow-unauthenticated
+```
+
+Post-deploy: `GET /api/health`, then scan `https://drsamerped.ai.studio` — expect niche **عيادات طبية**, name **د.سامر** or **عيادتي**, place **باقة الغربية**, real clinic phones, no slogan-as-name, no invented القدس. A dental demo and a restaurant demo must keep their own warehouse lines (not clinic hooks). Zero fake ROAS.
 
 ## License
 

@@ -60,7 +60,7 @@ function liveishPayload(url: string, name: string): ScanPayload {
       services: [],
       servicesEvidence: "missing",
       description: { value: null, evidence: "missing" },
-      niche: "clinic",
+      niche: "medical_clinics",
       fetched: true,
       usedDemo: false,
       sourceTitle: name,

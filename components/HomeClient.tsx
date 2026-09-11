@@ -6,7 +6,7 @@ import { JourneySteps } from "@/components/JourneySteps";
 import { UrlForm } from "@/components/UrlForm";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
-import { nicheLabel } from "@/lib/niches";
+import { allNicheLabels, nicheLabel } from "@/lib/niches";
 import { acceptScanPayload } from "@/lib/scan-accept";
 import { DEMOS } from "@/lib/scan";
 import { defaultSelection, saveLastScanUrl, saveScan, saveSelection } from "@/lib/session";
@@ -62,7 +62,15 @@ export function HomeClient() {
 
       <section className="mt-12">
         <h2 className="text-xl font-extrabold">{t("nichesTitle", lang)}</h2>
-        <p className="mt-1 text-sm text-khatwa-mute">{t("samples", lang)}</p>
+        <p className="mt-1 text-sm text-khatwa-mute">{t("nichesWeServe", lang)}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {allNicheLabels(lang).map((n) => (
+            <span key={n.id} data-niche-chip={n.id} className="k-chip bg-khatwa-green-soft text-sm font-extrabold">
+              {n.label}
+            </span>
+          ))}
+        </div>
+        <p className="mt-6 text-sm text-khatwa-mute">{t("samples", lang)}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {DEMOS.map((demo) => (
             <button

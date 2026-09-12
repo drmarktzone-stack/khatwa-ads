@@ -24,9 +24,9 @@ export const TOOL_CARDS: Array<{
     slug: "scripts",
     title: { ar: "نصوص فيروسية", he: "סקריפטים ויראליים", en: "Viral short scripts" },
     blurb: {
-      ar: "٣ سكربتات ريلز/تيك توك من وقائع الإعلان المقفول — بلا ROAS.",
-      he: "3 סקריפטי ריל/טיקטוק מעובדות החבילה — בלי ROAS.",
-      en: "3 Reels/TikTok scripts from the locked pack facts — no ROAS.",
+      ar: "٧ سكربتات ريلز/تيك توك باللهجة — من وقائع الباقة المقفولة، مش من الخيال.",
+      he: "7 סקריפטי ריל/טיקטוק בניב — מעובדות החבילה, לא מהדמיון.",
+      en: "7 dialect Reels/TikTok scripts from the locked pack — never invented.",
     },
   },
   {
@@ -161,97 +161,184 @@ function ctaOf(pack: AdPack): string {
   return pack.lines.find((l) => l.kind === "cta")?.ctaLabel || firstLine(pack, "cta") || nameOf(pack);
 }
 
+function L(lang: Lang, ar: string, he: string, en: string): string {
+  return lang === "he" ? he : lang === "en" ? en : ar;
+}
+
+function placeLine(name: string, place: string, lang: Lang): string {
+  if (place) return L(lang, `${name} في ${place}`, `${name} ב${place}`, `${name} in ${place}`);
+  return L(
+    lang,
+    "المكان: ما انذكرش بالموقع — شوف الصفحة",
+    "המקום: לא מופיע באתר — בדקו בעמוד",
+    "Place: not on the site — check the page",
+  );
+}
+
+function phoneLine(phone: string, lang: Lang): string {
+  if (phone) return L(lang, `التلفون من الموقع: ${phone}`, `טלפון מהאתר: ${phone}`, `Phone from the site: ${phone}`);
+  return L(
+    lang,
+    "ما منلفّقش رقم — إذا مش مكتوب، اسأل على الصفحة",
+    "לא ממציאים מספר — אם אין, שאלו בעמוד",
+    "No invented number — ask on the page if missing",
+  );
+}
+
+function hoursLine(hours: string, lang: Lang): string {
+  if (hours) return L(lang, `الدوام: ${hours}`, `שעות: ${hours}`, `Hours: ${hours}`);
+  return L(
+    lang,
+    "الدوام: ما انذكرش — شوف الصفحة",
+    "שעות: לא מופיע — בדקו בעמוד",
+    "Hours: not on the page — check the site",
+  );
+}
+
+function serviceLine(service: string, voiceOffer: string, lang: Lang): string {
+  if (service) return L(lang, `خدمة مكتوبة: ${service}`, `שירות כתוב: ${service}`, `Listed service: ${service}`);
+  return voiceOffer;
+}
+
+/** IsraModel / Shotto-class local UGC: seven talking-to-camera scripts, niche-aware, facts only. */
 export function buildViralScripts(pack: AdPack, lang: Lang): ViralScript[] {
   const name = nameOf(pack);
   const place = honest(pack.facts.place.value);
   const phone = honest(pack.facts.phone.value || pack.facts.whatsapp.value);
   const hours = honest(pack.facts.hours.value);
   const service = pack.facts.services[0] || "";
+  const serviceTwo = pack.facts.services[1] || service;
   const voice = nicheVoice(pack.facts.niche, lang);
   const headline = firstLine(pack, "headline") || name;
   const hook = firstLine(pack, "hook") || voice.pain;
   const cta = ctaOf(pack);
+  const placeBeat = placeLine(name, place, lang);
+  const phoneBeat = phoneLine(phone, lang);
+  const hoursBeat = hoursLine(hours, lang);
+  const serviceBeat = serviceLine(service, voice.offer, lang);
+  const honestBeat = L(
+    lang,
+    "الكلام من مسح الصفحة — بلا أسعار مخترَعة",
+    "הטקסט מסריקת העמוד — בלי מחירים מומצאים",
+    "Copy from the page scan — no invented prices",
+  );
 
-  const placeBeat =
-    place
-      ? lang === "ar"
-        ? `${name} في ${place}`
-        : lang === "he"
-          ? `${name} ב${place}`
-          : `${name} in ${place}`
-      : lang === "ar"
-        ? `${name} — المكان مكتوب على الصفحة إن وُجد`
-        : lang === "he"
-          ? `${name} — המקום רק אם כתוב בעמוד`
-          : `${name} — place only if the page lists it`;
-
-  const phoneBeat = phone
-    ? lang === "ar"
-      ? `التلفون من الموقع: ${phone}`
-      : lang === "he"
-        ? `טלפון מהאתר: ${phone}`
-        : `Phone from the site: ${phone}`
-    : lang === "ar"
-      ? "ما منلفّقش رقم — إذا مش مكتوب، اسأل على الصفحة"
-      : lang === "he"
-        ? "לא ממציאים מספר — אם אין, שאלו בעמוד"
-        : "No invented number — ask on the page if missing";
-
-  const hoursBeat = hours
-    ? lang === "ar"
-      ? `الدوام: ${hours}`
-      : lang === "he"
-        ? `שעות: ${hours}`
-        : `Hours: ${hours}`
-    : lang === "ar"
-      ? "الدوام: ما انذكرش — شوف الصفحة"
-      : lang === "he"
-        ? "שעות: לא מופיע — בדקו בעמוד"
-        : "Hours: not on the page — check the site";
-
-  const serviceBeat = service
-    ? lang === "ar"
-      ? `خدمة مكتوبة: ${service}`
-      : lang === "he"
-        ? `שירות כתוב: ${service}`
-        : `Listed service: ${service}`
-    : voice.offer;
-
-  const scripts: ViralScript[] = [
+  const drafts: ViralScript[] = [
     {
-      id: "hook-pain",
-      title: lang === "ar" ? "وجع → محل" : lang === "he" ? "כאב → עסק" : "Pain → shop",
+      id: "ugc-1-pain",
+      n: 1,
+      title: L(lang, "١ · وجع → محل", "1 · כאב → עסק", "1 · Pain → shop"),
       hook,
-      beats: [placeBeat, serviceBeat, hoursBeat],
+      beats: [
+        L(lang, "كاميرا تيك توك: احكي الوجع بجملة وحدة", "מצלמת טיקטוק: הכאב במשפט אחד", "TikTok cam: one-sentence pain"),
+        placeBeat,
+        serviceBeat,
+      ],
       cta,
       durationSec: 18,
     },
     {
-      id: "name-proof",
-      title: lang === "ar" ? "اسم + دليل" : lang === "he" ? "שם + הוכחה" : "Name + proof",
+      id: "ugc-2-proof",
+      n: 2,
+      title: L(lang, "٢ · اسم + دليل", "2 · שם + הוכחה", "2 · Name + proof"),
       hook: headline,
-      beats: [
-        placeBeat,
-        phoneBeat,
-        lang === "ar"
-          ? "الكلام من مسح الصفحة — بلا أسعار مخترَعة وبلا ROAS"
-          : lang === "he"
-            ? "הטקסט מסריקת העמוד — בלי מחירים מומצאים ובלי ROAS"
-            : "Copy from the page scan — no invented prices, no ROAS",
-      ],
+      beats: [placeBeat, phoneBeat, honestBeat],
       cta,
       durationSec: 15,
     },
     {
-      id: "cta-now",
-      title: lang === "ar" ? "دعوة سريعة" : lang === "he" ? "קריאה מהירה" : "Quick CTA",
+      id: "ugc-3-walk",
+      n: 3,
+      title: L(lang, "٣ · امشي معي", "3 · בואו איתי", "3 · Walk with me"),
+      hook: L(lang, `امشي معي على ${name}`, `בואו איתי אל ${name}`, `Walk with me to ${name}`),
+      beats: [
+        placeBeat,
+        hoursBeat,
+        L(lang, "صوّر الواجهة أو الاستقبال من صور الموقع إن وُجدت", "צלמו חזית או קבלה מתמונות האתר אם יש", "Film the storefront or reception from site photos if they exist"),
+      ],
+      cta: voice.visit,
+      durationSec: 20,
+    },
+    {
+      id: "ugc-4-neighbor",
+      n: 4,
+      title: L(lang, "٤ · جار بيحكي", "4 · שכן מספר", "4 · Neighbor says"),
       hook: voice.pain,
+      beats: [
+        place
+          ? L(lang, `ناس ${place} بيسألوا عن ${name}`, `אנשים ב${place} שואלים על ${name}`, `People in ${place} ask about ${name}`)
+          : L(lang, `ناس الصفحة بيسألوا عن ${name}`, `אנשי העמוד שואלים על ${name}`, `People from the page ask about ${name}`),
+        serviceBeat,
+        honestBeat,
+      ],
+      cta,
+      durationSec: 16,
+    },
+    {
+      id: "ugc-5-hours",
+      n: 5,
+      title: L(lang, "٥ · اليوم / الدوام", "5 · היום / שעות", "5 · Today / hours"),
+      hook: hoursBeat,
       beats: [placeBeat, phoneBeat, voice.visit],
       cta,
       durationSec: 12,
     },
+    {
+      id: "ugc-6-service",
+      n: 6,
+      title: L(lang, "٦ · تفصيل الخدمة", "6 · פרט השירות", "6 · Service close-up"),
+      hook: serviceTwo
+        ? L(lang, serviceTwo, serviceTwo, serviceTwo)
+        : voice.offer,
+      beats: [
+        L(lang, `هاي من صفحة ${name} — مش اختراع`, `זה מעמוד ${name} — לא המצאה`, `This is from ${name}’s page — not invented`),
+        placeBeat,
+        phoneBeat,
+      ],
+      cta,
+      durationSec: 14,
+    },
+    {
+      id: "ugc-7-save",
+      n: 7,
+      title: L(lang, "٧ · احفظ الرقم", "7 · שמרו מספר", "7 · Save the number"),
+      hook: phone
+        ? L(lang, `احفظ رقم ${name} لليلة`, `שמרו את המספר של ${name} ללילה`, `Save ${name}’s number for tonight`)
+        : L(lang, `افتح صفحة ${name} هسا`, `פתחו את העמוד של ${name} עכשיו`, `Open ${name}’s page now`),
+      beats: [phoneBeat, placeBeat, L(lang, "إنت بتبعت — ما في إرسال صامت", "אתם שולחים — אין שליחה שקטה", "You send it — no silent post")],
+      cta,
+      durationSec: 12,
+    },
   ];
-  return scripts.filter((s) => cleanLine(s.hook, pack) && s.beats.every((b) => cleanLine(b, pack)));
+
+  const kept: ViralScript[] = [];
+  for (const script of drafts) {
+    if (!cleanLine(script.hook, pack)) continue;
+    if (!script.beats.every((b) => cleanLine(b, pack))) continue;
+    if (!cleanLine(script.cta, pack)) continue;
+    kept.push(script);
+  }
+
+  if (kept.length < 7) {
+    for (const line of pack.lines) {
+      if (kept.length >= 7) break;
+      if (!cleanLine(line.text, pack) || !cleanLine(line.ctaLabel, pack)) continue;
+      if (kept.some((s) => s.hook === line.text)) continue;
+      const padBeats = [placeBeat, serviceBeat, voice.visit].filter((b) => cleanLine(b, pack));
+      if (padBeats.length < 2) continue;
+      kept.push({
+        id: `ugc-pad-${line.id}`,
+        n: kept.length + 1,
+        title: L(lang, `${kept.length + 1} · من الباقة`, `${kept.length + 1} · מהחבילה`, `${kept.length + 1} · From the pack`),
+        hook: line.text,
+        beats: padBeats.slice(0, 3),
+        cta: line.ctaLabel || cta,
+        durationSec: 12,
+      });
+    }
+  }
+
+  return kept.slice(0, 7).map((s, i) => ({ ...s, n: i + 1 }));
 }
 
 export function buildCarousel(pack: AdPack, lang: Lang): CarouselSlide[] {
@@ -310,10 +397,10 @@ export function buildCarousel(pack: AdPack, lang: Lang): CarouselSlide[] {
       title: lang === "ar" ? "صدق" : lang === "he" ? "כנות" : "Honest",
       caption:
         lang === "ar"
-          ? "الوقائع من الموقع — بلا ROAS وبلا سعر مخترَع"
+          ? "الوقائع من الموقع — بلا سعر مخترَع"
           : lang === "he"
-            ? "העובדות מהאתר — בלי ROAS ובלי מחיר מומצא"
-            : "Facts from the site — no ROAS, no invented price",
+            ? "העובדות מהאתר — בלי מחיר מומצא"
+            : "Facts from the site — no invented price",
       visual: lang === "ar" ? "كرت الوقائع" : lang === "he" ? "כרטיס עובדות" : "Facts card",
     },
     {
@@ -366,10 +453,10 @@ export function buildCalendar(pack: AdPack, lang: Lang): CalendarDay[] {
   push(
     lang === "ar" ? "صدق" : lang === "he" ? "כנות" : "Honest",
     lang === "ar"
-      ? `${niche} — الوقائع من الصفحة، بلا ROAS`
+      ? `${niche} — الوقائع من الصفحة، بلا أرقام اختراع`
       : lang === "he"
-        ? `${niche} — עובדות מהעמוד, בלי ROAS`
-        : `${niche} — page facts, no ROAS`,
+        ? `${niche} — עובדות מהעמוד, בלי מספרים מומצאים`
+        : `${niche} — page facts, no invented numbers`,
   );
 
   if (!seeds.length) {
@@ -468,10 +555,10 @@ export function buildStories(pack: AdPack, lang: Lang): StoryBeat[] {
       headline: lang === "ar" ? "يوم ٥ — كمّل" : lang === "he" ? "יום 5 — המשיכו" : "Day 5 — go",
       body:
         lang === "ar"
-          ? `${name}${place ? ` — ${place}` : ""}. الوقائع من الموقع، بلا ROAS.`
+          ? `${name}${place ? ` — ${place}` : ""}. الوقائع من الموقع.`
           : lang === "he"
-            ? `${name}${place ? ` — ${place}` : ""}. עובדות מהאתר, בלי ROAS.`
-            : `${name}${place ? ` — ${place}` : ""}. Site facts, no ROAS.`,
+            ? `${name}${place ? ` — ${place}` : ""}. עובדות מהאתר.`
+            : `${name}${place ? ` — ${place}` : ""}. Site facts.`,
       cta,
     },
   ];
@@ -494,7 +581,7 @@ export function buildToolsBundle(pack: AdPack, lang: Lang, usedGemini = false): 
         ];
 
   return {
-    scripts: buildViralScripts(pack, lang).slice(0, 3),
+    scripts: buildViralScripts(pack, lang).slice(0, 7),
     carousel: paddedCarousel.slice(0, 10).map((s, i) => ({ ...s, n: i + 1 })),
     calendar: buildCalendar(pack, lang),
     bios: buildBios(pack, lang).slice(0, 3),

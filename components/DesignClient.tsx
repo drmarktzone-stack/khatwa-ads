@@ -39,16 +39,17 @@ export function DesignClient() {
       <JourneySteps lang={lang} step={4} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black">{t("designTitle", lang)}</h1>
+          <p className="k-kicker">{t("pickLayout", lang)}</p>
+          <h1 className="mt-3 text-4xl font-black">{t("designTitle", lang)}</h1>
           <p className="mt-2 max-w-xl text-khatwa-mute">{t("designSub", lang)}</p>
         </div>
         <PrimaryCta onClick={() => router.push(`/preview?lang=${lang}`)}>{t("designContinue", lang)}</PrimaryCta>
       </div>
 
       {(["1:1", "9:16"] as const).map((ratio) => (
-        <section key={ratio} className="mt-8">
-          <p className="mb-3 text-sm font-extrabold text-khatwa-green">
-            {ratio === "1:1" ? t("ratioFeed", lang) : t("ratioStory", lang)}
+        <section key={ratio} className="mt-10">
+          <p className="mb-4 text-sm font-extrabold text-khatwa-green">
+            {ratio === "1:1" ? t("feedRow", lang) : t("storyRow", lang)}
           </p>
           <div className="flex gap-5 overflow-x-auto pb-4">
             {AD_LAYOUTS.filter((l) => l.ratio === ratio).map((layout) => {
@@ -59,7 +60,7 @@ export function DesignClient() {
                   type="button"
                   data-layout-pick={layout.id}
                   onClick={() => pick(layout.id)}
-                  className={`min-w-[240px] shrink-0 rounded-[2rem] border-2 bg-white p-4 text-start shadow-card transition ${
+                  className={`min-w-[250px] shrink-0 rounded-[2rem] border-2 bg-white p-4 text-start shadow-card transition ${
                     on ? "border-khatwa-green ring-4 ring-khatwa-lime" : "border-khatwa-line hover:-translate-y-0.5"
                   }`}
                 >
@@ -70,7 +71,7 @@ export function DesignClient() {
                     {on ? t("selectedLayout", lang) : layout.ratio}
                   </p>
                   <span className="mt-3 inline-flex rounded-full bg-khatwa-lime px-4 py-1.5 text-sm font-extrabold text-khatwa-ink">
-                    {t("startNow", lang)}
+                    {on ? t("selectedLayout", lang) : t("startNow", lang)}
                   </span>
                 </button>
               );

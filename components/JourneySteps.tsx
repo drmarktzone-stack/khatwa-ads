@@ -14,21 +14,29 @@ export function JourneySteps({ lang, step }: { lang: Lang; step: 1 | 2 | 3 | 4 |
     { n: 6 as const, href: `/publish?lang=${lang}`, label: t("step6", lang) },
   ];
   return (
-    <ol className="mb-8 flex flex-wrap gap-2">
-      {items.map((item) => (
-        <li key={item.n}>
+    <ol className="mb-10 flex flex-wrap items-center gap-2">
+      {items.map((item, i) => (
+        <li key={item.n} className="flex items-center gap-2">
           <Link
             href={item.href}
-            className={`rounded-full px-3 py-1.5 text-sm font-extrabold ${
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-extrabold transition ${
               item.n === step
-                ? "bg-khatwa-green text-white"
+                ? "bg-khatwa-green text-white shadow-cta"
                 : item.n < step
                   ? "bg-khatwa-lime text-khatwa-ink"
-                  : "bg-white text-khatwa-mute border border-khatwa-line"
+                  : "border border-khatwa-line bg-white text-khatwa-mute"
             }`}
           >
-            {item.label}
+            <span
+              className={`grid h-6 w-6 place-items-center rounded-full text-[11px] ${
+                item.n === step ? "bg-white/20 text-white" : item.n < step ? "bg-khatwa-ink text-khatwa-lime" : "bg-khatwa-mint"
+              }`}
+            >
+              {item.n}
+            </span>
+            {item.label.replace(/^\d+\.\s*/, "")}
           </Link>
+          {i < items.length - 1 ? <span className="hidden h-px w-5 bg-khatwa-line sm:block" /> : null}
         </li>
       ))}
     </ol>

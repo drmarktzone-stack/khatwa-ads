@@ -45,33 +45,39 @@ export function DesignClient() {
         <PrimaryCta onClick={() => router.push(`/preview?lang=${lang}`)}>{t("designContinue", lang)}</PrimaryCta>
       </div>
 
-      <div className="mt-8 flex gap-5 overflow-x-auto pb-4">
-        {AD_LAYOUTS.map((layout) => {
-          const on = pack.layoutId === layout.id;
-          return (
-            <button
-              key={layout.id}
-              type="button"
-              data-layout-pick={layout.id}
-              onClick={() => pick(layout.id)}
-              className={`min-w-[260px] shrink-0 rounded-[2rem] border-2 bg-white p-4 text-start shadow-card transition ${
-                on ? "border-khatwa-green ring-4 ring-khatwa-lime" : "border-khatwa-line hover:-translate-y-0.5"
-              }`}
-            >
-              <AdPoster pack={pack} layoutId={layout.id} className="mx-auto" />
-              <p className="mt-4 text-lg font-black">{layout.name[lang]}</p>
-              <p className="mt-1 text-sm text-khatwa-mute">{layout.blurb[lang]}</p>
-              <p className="mt-2 text-xs font-extrabold text-khatwa-green">
-                {layout.ratio === "1:1" ? t("ratioFeed", lang) : t("ratioStory", lang)}
-                {on ? ` · ${t("selectedLayout", lang)}` : ""}
-              </p>
-              <span className="mt-3 inline-flex rounded-full bg-khatwa-lime px-4 py-1.5 text-sm font-extrabold text-khatwa-ink">
-                {t("startNow", lang)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {(["1:1", "9:16"] as const).map((ratio) => (
+        <section key={ratio} className="mt-8">
+          <p className="mb-3 text-sm font-extrabold text-khatwa-green">
+            {ratio === "1:1" ? t("ratioFeed", lang) : t("ratioStory", lang)}
+          </p>
+          <div className="flex gap-5 overflow-x-auto pb-4">
+            {AD_LAYOUTS.filter((l) => l.ratio === ratio).map((layout) => {
+              const on = pack.layoutId === layout.id;
+              return (
+                <button
+                  key={layout.id}
+                  type="button"
+                  data-layout-pick={layout.id}
+                  onClick={() => pick(layout.id)}
+                  className={`min-w-[240px] shrink-0 rounded-[2rem] border-2 bg-white p-4 text-start shadow-card transition ${
+                    on ? "border-khatwa-green ring-4 ring-khatwa-lime" : "border-khatwa-line hover:-translate-y-0.5"
+                  }`}
+                >
+                  <AdPoster pack={pack} layoutId={layout.id} className="mx-auto" />
+                  <p className="mt-4 text-lg font-black">{layout.name[lang]}</p>
+                  <p className="mt-1 text-sm text-khatwa-mute">{layout.blurb[lang]}</p>
+                  <p className="mt-2 text-xs font-extrabold text-khatwa-green">
+                    {on ? t("selectedLayout", lang) : layout.ratio}
+                  </p>
+                  <span className="mt-3 inline-flex rounded-full bg-khatwa-lime px-4 py-1.5 text-sm font-extrabold text-khatwa-ink">
+                    {t("startNow", lang)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
 
       <p className="mt-4 text-sm font-bold text-khatwa-green">
         {current.name[lang]} — {current.blurb[lang]}

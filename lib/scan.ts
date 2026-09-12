@@ -10,6 +10,7 @@ import {
   getNiche,
   isBannedSloganName,
   pickHonestName,
+  termMatches,
 } from "./niches";
 import type { BusinessFacts, EvidenceLevel, FactField, Lang, NicheId } from "./types";
 
@@ -187,7 +188,7 @@ function extractServices(blob: string, niche: NicheId): string[] {
   const found = new Set<string>();
   const keys = getNiche(niche).serviceCatalog;
   for (const key of keys) {
-    if (blob.toLowerCase().includes(key.toLowerCase())) found.add(key);
+    if (termMatches(blob, key)) found.add(key);
   }
   return [...found].slice(0, 6);
 }
@@ -578,9 +579,10 @@ export function factsFromHtml(
     $('meta[property="og:description"]').attr("content") ||
     null;
   const title = $("title").first().text().trim() || null;
-  const preNiche = classifySite({ name: title, title, description: desc, blob, host });
+  // Classify from visible page text — never Duda/Wix runtime JS (IsSiteMultilingual ⊂ tiling).
+  const preNiche = classifySite({ name: title, title, description: desc, blob: visible, host });
   const name = extractName($, host, blob, preNiche === "medical_clinics" || preNiche === "pediatric_clinics");
-  const niche = classifySite({ name: name.value, title, description: desc, blob, host });
+  const niche = classifySite({ name: name.value, title, description: desc, blob: visible, host });
   const doctorName = extractDoctorName(blob);
   const slogan = extractKnownSlogan(blob);
   const insurance = extractInsurance(blob);
@@ -588,7 +590,7 @@ export function factsFromHtml(
   const place = extractPlace($, blob);
   const hours = extractHours($, blob);
   const wa = extractWhatsapp($, scripts);
-  const services = extractServices(blob, niche);
+  const services = extractServices(visible, niche);
   const siteImages = extractSiteImages($, pageUrl);
 
   const facts: BusinessFacts = {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/AppFrame";
 import { JourneySteps } from "@/components/JourneySteps";
@@ -10,6 +11,7 @@ import { allNicheLabels, nicheLabel } from "@/lib/niches";
 import { acceptScanPayload } from "@/lib/scan-accept";
 import { DEMOS } from "@/lib/scan";
 import { defaultSelection, saveLastScanUrl, saveScan, saveSelection } from "@/lib/session";
+import { TOOL_CARDS } from "@/lib/tools-engine";
 import { useRouter } from "next/navigation";
 
 export function HomeClient() {
@@ -52,6 +54,7 @@ export function HomeClient() {
             <li className="k-chip w-fit bg-khatwa-green-soft">{t("promise1", lang)}</li>
             <li className="k-chip w-fit bg-khatwa-yellow-soft">{t("promise2", lang)}</li>
             <li className="k-chip w-fit">{t("promise3", lang)}</li>
+            <li className="k-chip w-fit bg-khatwa-lime">{t("promise4", lang)}</li>
           </ul>
           <p className="mt-4 text-sm font-medium text-khatwa-green">{t("noStuck", lang)}</p>
         </div>
@@ -96,6 +99,28 @@ export function HomeClient() {
                 </p>
               </div>
             </button>
+          ))}
+        </div>
+      </section>
+      <section className="mt-14 rounded-[2rem] bg-khatwa-ink px-6 py-10 text-white">
+        <p className="inline-flex rounded-full bg-khatwa-lime px-3 py-1 text-sm font-extrabold text-khatwa-ink">
+          {t("toolsNav", lang)}
+        </p>
+        <h2 className="mt-4 text-3xl font-black">{t("toolsTitle", lang)}</h2>
+        <p className="mt-2 max-w-2xl text-white/80">{t("toolsSub", lang)}</p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {TOOL_CARDS.map((card) => (
+            <Link
+              key={card.slug}
+              href={`/tools/${card.slug}?lang=${lang}`}
+              className="rounded-3xl bg-white p-5 text-khatwa-ink transition hover:-translate-y-0.5"
+            >
+              <p className="text-lg font-black">{card.title[lang]}</p>
+              <p className="mt-2 text-sm text-khatwa-mute">{card.blurb[lang]}</p>
+              <span className="mt-4 inline-flex rounded-full bg-khatwa-lime px-4 py-1.5 text-sm font-extrabold">
+                {t("startNow", lang)}
+              </span>
+            </Link>
           ))}
         </div>
       </section>

@@ -18,6 +18,7 @@ const config: Config = {
           mint: "#F4FBF6",
           yellow: "#F5C518",
           "yellow-soft": "#FFF6D4",
+          lime: "#D6F26A",
           line: "#D7E8DC",
           card: "#FFFFFF",
         },

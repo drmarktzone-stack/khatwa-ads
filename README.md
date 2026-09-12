@@ -1,6 +1,6 @@
 # خطوة Ads / Khatwa Ads
 
-Paste a local business URL → honest scan → a marketplace of **20+ distinct** Palestinian-Arabic lines (Hebrew / English via translation) and niche images → multi-select → copy pack + **1:1 and 9:16** ad frames.
+Paste a local business URL → honest scan → a marketplace of **20+ distinct** Palestinian-Arabic lines (Hebrew / English via translation) and niche images → **lock an AdPack** → choose a design → preview → publish anywhere (WhatsApp / native share / PNG / Meta·IG·TikTok instructions). Plus a **شمائل** tools hub (viral scripts, carousel, 30-day calendar, bio, story templates).
 
 Greenfield app. It does **not** use sawek-ad, OmniAd, AdBrain, or Base44.
 
@@ -8,7 +8,9 @@ Owner: [drmarktzone-stack](https://github.com/drmarktzone-stack)
 
 ## Product
 
-One sitting. One green path: **URL → scan → pick → export**. No invented prices, phones, cities, hours, or ROAS. Missing fields stay “not found on the site”. Out-of-list businesses get a **soft gate** and general lines from the page only — never a fake specialty dump.
+One sitting. One green path: **URL → scan → pick → lock → design → preview → publish**. The result page is never a cul-de-sac. No invented prices, phones, cities, hours, or ROAS. Missing fields stay “not found on the site”. Out-of-list businesses get a **soft gate** and general lines from the page only — never a fake specialty dump.
+
+**Owner hard rule:** Khatwa never asks for or stores Facebook / Instagram / Google passwords, and never posts silently as the user. Share, download, and open-the-platform only.
 
 Arabic (`ar`) is Palestinian colloquial and the generation base. `he` / `en` are translations of that base (Cloud Translation or Gemini when keys exist; otherwise the facts engine in that language).
 
@@ -36,11 +38,29 @@ Hard check: `https://drsamerped.ai.studio` → `pediatric_clinics`, name `عيا
 
 ## Journey
 
-1. `/?lang=ar|he|en` — paste a URL and **امسح الموقع**. Niche tiles labeled **عيّنة** are a separate demo path.
-2. `/scan` — honest business card with a **niche badge**, copy marketplace **grouped by niche angles**, image grid (site photos first, unique captions).
-3. `/result` — selected lines, copy-all, `.txt` pack, **1:1 feed** and **9:16 story** frames with PNG download.
+Never stuck after marketplace selection. Primary result CTA is **اقفل الإعلان وكمل** (not only «ارجع للسوق»).
 
-`ar` and `he` render RTL. Buttons never sit grey with no action: the primary CTA always continues (empty picks auto-fill).
+1. `/?lang=ar|he|en` — paste a URL and **امسح الموقع**. Niche tiles labeled **عيّنة** are a separate demo path. Home also lists **شمائل** start cards.
+2. `/scan` — honest business card with a **niche badge**, copy marketplace **grouped by niche angles**, image grid (site photos first, unique captions).
+3. `/result` — selected lines + images. **اقفل الإعلان وكمل** freezes an immutable AdPack (session + localStorage snapshot). Copy / `.txt` remain secondary. Back-to-market and new-scan are never the only buttons.
+4. `/design` — carousel of **≥4 layouts** (1:1 feed + 9:16 story): photo + name + place + phone + CTA overlays.
+5. `/preview` — full poster, **editable caption**, **نشر الآن** + **حفظ كمسودة** (draft stays on-device).
+6. `/publish` — أين تريد النشر؟ Facebook / Instagram / WhatsApp / TikTok:
+   - WhatsApp: `wa.me` share with text + link
+   - Native Web Share API when the browser has it
+   - Download PNG (selected layout + paired 1:1 / 9:16) + copy pack (`.txt`)
+   - Deep-link / how-to to open Meta Ads, Instagram, TikTok with assets ready
+   - **No passwords. No silent posting.**
+7. `/tools` — Mohtawak-class شمائل (also linked from the header and home):
+   - نصوص فيروسية / viral Reels–TikTok scripts
+   - كاروسيل (10-slide outline + captions)
+   - تقويم ٣٠ يوم from the niche warehouse
+   - محسّن البايو (3 variants)
+   - قوالب ستوري (5-day teaser series)
+
+Each tool uses scan facts + locked lines. Gemini when keys exist; facts/warehouse fallback otherwise. Niche-aware across all 11 niches (including `pediatric_clinics` / عيادتي brand law).
+
+`ar` and `he` render RTL. Lime/green/white energy, Khatwa brand. Buttons never sit grey with no action: the primary CTA always continues (empty picks auto-fill, missing pack auto-locks from the current scan).
 
 **Scan vs عيّنة:** Pasting a real URL and clicking Scan calls `POST /api/scan` and keeps that business in `sessionStorage` + `localStorage`. An empty or live URL is **never** returned or shown as the built-in clinic sample. If the scan fails, **أعيد المحاولة** is the primary action (same URL stays in the box). Sample is only an explicit **عيّنة** tile or the secondary link **جرّب عيّنة منفصلة** — never a mid-scan button, and it does not overwrite the typed URL. `/scan` with no stored payload shows an error and returns home with the URL; it does not inject the demo clinic.
 
@@ -52,7 +72,8 @@ Hard check: `https://drsamerped.ai.studio` → `pediatric_clinics`, name `عيا
 | Copy | Per-niche warehouse + Vertex **gemini-2.5-flash** + Search Grounding, facts-only | ≥20 distinct Palestinian-AR lines from that niche’s warehouse |
 | Images | Site images first; **per-niche motifs** + unique captions; optional **gemini-2.5-flash-image** / Imagen | Motif stock + unique captions |
 | Translate | Cloud Translation or Gemini from the AR base | Facts-engine HE/EN |
-| Export | Text pack + 1:1 / 9:16 frames | Always local |
+| Export / publish | Text pack + layout PNG 1:1 / 9:16 + wa.me / Web Share | Always local |
+| شمائل | Scripts, carousel, 30-day calendar, bios, stories from the locked AdPack | Facts + warehouse; Gemini optional |
 
 No engine-chrome slogans in the ad lines. No identical caption on every tile. No scavenger forms.
 
@@ -112,7 +133,7 @@ gcloud run deploy khatwa-ads \
   --allow-unauthenticated
 ```
 
-Post-deploy: `GET /api/health`, then scan `https://drsamerped.ai.studio` — expect niche **عيادات أطفال** (`pediatric_clinics`), name **عيادتي**, place **باقة الغربية**, real clinic phones, slogan only as USP, no invented القدس. A dental demo and a restaurant demo must keep their own warehouse lines (not clinic hooks). Zero fake ROAS.
+Post-deploy: `GET /api/health`, then scan `https://drsamerped.ai.studio` — expect niche **عيادات أطفال** (`pediatric_clinics`), name **عيادتي**, place **باقة الغربية**, real clinic phones, slogan only as USP, no invented القدس. From `/scan` pick lines → `/result` must show **اقفل الإعلان وكمل** (not only back-to-market). Lock → `/design` (≥4 layouts) → `/preview` (نشر الآن / حفظ كمسودة) → `/publish` (FB / IG / WA / TikTok). `/tools` must render five start cards. A dental demo and a restaurant demo must keep their own warehouse lines (not clinic hooks). Zero fake ROAS. Never a Facebook/Instagram password field.
 
 ## License
 

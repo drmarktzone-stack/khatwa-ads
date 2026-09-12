@@ -10,7 +10,7 @@ export function Header({ lang }: { lang: Lang }) {
     <header className={`sticky top-0 z-20 border-b border-khatwa-line/70 bg-white/80 backdrop-blur ${fontClass(lang)}`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Link href={`/?lang=${lang}`} className="flex items-center gap-2">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-khatwa-green text-lg font-extrabold text-khatwa-yellow">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-khatwa-green text-lg font-extrabold text-khatwa-lime">
             خ
           </span>
           <span>
@@ -18,7 +18,15 @@ export function Header({ lang }: { lang: Lang }) {
             <span className="text-xs text-khatwa-mute">Meta · AR / HE / EN</span>
           </span>
         </Link>
-        <LanguageSwitcher lang={lang} />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/tools?lang=${lang}`}
+            className="rounded-full border border-khatwa-line bg-khatwa-lime px-3 py-1.5 text-sm font-extrabold text-khatwa-ink"
+          >
+            {t("toolsNav", lang)}
+          </Link>
+          <LanguageSwitcher lang={lang} />
+        </div>
       </div>
     </header>
   );

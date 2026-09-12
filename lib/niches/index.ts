@@ -22,6 +22,7 @@ export {
   looksLikeDoctorName,
   mentionsJerusalem,
   jerusalemAllowed,
+  lineInventsFacts,
   BANNED_NAME_SLOGANS,
 } from "./brand";
 export { PLACE_HINTS, findPlaceHint, findExplicitJerusalem } from "./places";

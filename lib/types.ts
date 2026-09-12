@@ -100,3 +100,76 @@ export interface SelectionState {
   lineIds: string[];
   imageIds: string[];
 }
+
+export type AdLayoutId =
+  | "feed_bold"
+  | "feed_card"
+  | "feed_split"
+  | "story_stack"
+  | "story_banner"
+  | "story_glass";
+
+export type ToolSlug = "scripts" | "carousel" | "calendar" | "bio" | "stories";
+
+export type PublishDest = "facebook" | "instagram" | "whatsapp" | "tiktok";
+
+/** Immutable snapshot of the chosen marketplace lines + images. Layout/caption may update after lock. */
+export interface AdPack {
+  id: string;
+  lockedAt: number;
+  lang: Lang;
+  facts: BusinessFacts;
+  lines: CopyLine[];
+  images: NicheImage[];
+  lineIds: string[];
+  imageIds: string[];
+  layoutId: AdLayoutId;
+  caption: string;
+  draft: boolean;
+}
+
+export interface ViralScript {
+  id: string;
+  title: string;
+  hook: string;
+  beats: string[];
+  cta: string;
+  durationSec: number;
+}
+
+export interface CarouselSlide {
+  n: number;
+  title: string;
+  caption: string;
+  visual: string;
+}
+
+export interface CalendarDay {
+  day: number;
+  theme: string;
+  caption: string;
+  channel: "reel" | "story" | "feed" | "whatsapp";
+}
+
+export interface BioVariant {
+  id: string;
+  tone: string;
+  text: string;
+}
+
+export interface StoryBeat {
+  day: number;
+  headline: string;
+  body: string;
+  cta: string;
+}
+
+export interface ToolsBundle {
+  scripts: ViralScript[];
+  carousel: CarouselSlide[];
+  calendar: CalendarDay[];
+  bios: BioVariant[];
+  stories: StoryBeat[];
+  usedGemini: boolean;
+  notice: string | null;
+}

@@ -1,9 +1,11 @@
-import type { ScanPayload, SelectionState } from "./types";
+import type { AdPack, ScanPayload, SelectionState } from "./types";
 
 const SCAN_KEY = "khatwa.scan";
 const SEL_KEY = "khatwa.selection";
 const DRAFT_KEY = "khatwa.draftUrl";
 const LAST_SCAN_KEY = "khatwa.lastScanUrl";
+const PACK_KEY = "khatwa.adpack";
+const DRAFTS_KEY = "khatwa.draftPacks";
 
 function writeBoth(key: string, value: string) {
   if (typeof window === "undefined") return;
@@ -76,6 +78,55 @@ export function saveLastScanUrl(url: string) {
 
 export function loadLastScanUrl(): string {
   return readPreferSession(LAST_SCAN_KEY) || "";
+}
+
+export function saveAdPack(pack: AdPack) {
+  writeBoth(PACK_KEY, JSON.stringify(pack));
+}
+
+export function loadAdPack(): AdPack | null {
+  const raw = readPreferSession(PACK_KEY);
+  if (!raw) return null;
+  try {
+    const pack = JSON.parse(raw) as AdPack;
+    if (!pack?.id || !pack.facts || !Array.isArray(pack.lines)) return null;
+    return pack;
+  } catch {
+    return null;
+  }
+}
+
+export function clearAdPack() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(PACK_KEY);
+  } catch {
+    /* ignore */
+  }
+  try {
+    localStorage.removeItem(PACK_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function saveDraftPack(pack: AdPack) {
+  const next: AdPack = { ...pack, draft: true };
+  saveAdPack(next);
+  const all = loadDraftPacks().filter((p) => p.id !== next.id);
+  all.unshift(next);
+  writeBoth(DRAFTS_KEY, JSON.stringify(all.slice(0, 12)));
+}
+
+export function loadDraftPacks(): AdPack[] {
+  const raw = readPreferSession(DRAFTS_KEY);
+  if (!raw) return [];
+  try {
+    const list = JSON.parse(raw) as AdPack[];
+    return Array.isArray(list) ? list.filter((p) => p?.id && p.facts) : [];
+  } catch {
+    return [];
+  }
 }
 
 export function defaultSelection(payload: ScanPayload): SelectionState {

@@ -2,53 +2,36 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { AdFrames } from "@/components/AdFrames";
+import { AdPoster } from "@/components/AdPoster";
 import { AppFrame } from "@/components/AppFrame";
 import { JourneySteps } from "@/components/JourneySteps";
+import { NeedScanGate } from "@/components/NeedScanGate";
 import { PrimaryCta } from "@/components/PrimaryCta";
+import { lockAdPack, packText } from "@/lib/adpack";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
+import { AD_LAYOUTS } from "@/lib/layouts";
+import { downloadTextFile } from "@/lib/publish";
 import { resolveMarketplacePayload } from "@/lib/scan-accept";
-import { defaultSelection, loadDraftUrl, loadLastScanUrl, loadScan, loadSelection, saveScan, saveSelection } from "@/lib/session";
-import type { ScanPayload, SelectionState } from "@/lib/types";
-
-function packText(payload: ScanPayload, sel: SelectionState, lang: ReturnType<typeof parseLang>): string {
-  const lines = payload.lines.filter((l) => sel.lineIds.includes(l.id));
-  const images = payload.images.filter((i) => sel.imageIds.includes(i.id));
-  const facts = payload.facts;
-  const heads = lines.filter((l) => l.kind === "headline").map((l) => l.text);
-  const hooks = lines.filter((l) => l.kind === "hook").map((l) => l.text);
-  const ctas = lines.filter((l) => l.kind === "cta").map((l) => `${l.text}  →  ${l.ctaLabel}`);
-  return [
-    `${t("brand", lang)} — ${t("resultTitle", lang)}`,
-    `${t("name", lang)}: ${facts.name.value || facts.host}`,
-    `${t("phone", lang)}: ${facts.phone.value || t("missing", lang)}`,
-    `${t("place", lang)}: ${facts.place.value || t("missing", lang)}`,
-    `${t("hours", lang)}: ${facts.hours.value || t("missing", lang)}`,
-    `${t("services", lang)}: ${facts.services.join(", ") || t("missing", lang)}`,
-    `URL: ${facts.url}`,
-    "",
-    `— ${t("headline", lang)} —`,
-    ...heads,
-    "",
-    `— ${t("hook", lang)} —`,
-    ...hooks,
-    "",
-    `— ${t("cta", lang)} —`,
-    ...ctas,
-    "",
-    `— ${t("images", lang)} —`,
-    ...images.map((i) => `${i.caption} [${i.source}]`),
-    "",
-    t("evidenceNote", lang),
-  ].join("\n");
-}
+import {
+  defaultSelection,
+  loadAdPack,
+  loadDraftUrl,
+  loadLastScanUrl,
+  loadScan,
+  loadSelection,
+  saveAdPack,
+  saveScan,
+  saveSelection,
+} from "@/lib/session";
+import type { AdPack, ScanPayload, SelectionState } from "@/lib/types";
 
 export function ResultClient() {
   const lang = parseLang(useSearchParams().get("lang"));
   const router = useRouter();
   const [payload, setPayload] = useState<ScanPayload | null>(null);
   const [sel, setSel] = useState<SelectionState | null>(null);
+  const [pack, setPack] = useState<AdPack | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -60,42 +43,19 @@ export function ResultClient() {
     saveSelection(selection);
     setPayload(resolved.payload);
     setSel(selection);
+    setPack(loadAdPack());
   }, []);
 
-  const chosen = useMemo(() => {
+  const previewPack = useMemo(() => {
     if (!payload || !sel) return null;
-    const lines = payload.lines.filter((l) => sel.lineIds.includes(l.id));
-    const images = payload.images.filter((i) => sel.imageIds.includes(i.id));
-    return { lines, images };
-  }, [payload, sel]);
+    return lockAdPack(payload, sel, lang, pack?.layoutId || "feed_bold");
+  }, [payload, sel, lang, pack?.layoutId]);
 
-  if (!payload || !sel || !chosen) {
-    return (
-      <AppFrame lang={lang}>
-        <JourneySteps lang={lang} step={3} />
-        <div className="k-card mx-auto max-w-lg p-8 text-center">
-          <p className="text-lg font-bold">{t("noScanStored", lang)}</p>
-          <PrimaryCta
-            className="mt-6"
-            onClick={() => {
-              const draft = loadDraftUrl().trim();
-              const q = new URLSearchParams({ lang });
-              if (draft) q.set("url", draft);
-              router.push(`/?${q.toString()}`);
-            }}
-          >
-            {t("backHomeKeepUrl", lang)}
-          </PrimaryCta>
-        </div>
-      </AppFrame>
-    );
+  if (!payload || !sel || !previewPack) {
+    return <NeedScanGate lang={lang} step={3} />;
   }
 
-  const text = packText(payload, sel, lang);
-  const headline = chosen.lines.find((l) => l.kind === "headline") || chosen.lines[0];
-  const cta = chosen.lines.find((l) => l.kind === "cta");
-  const image = chosen.images[0];
-  const host = payload.facts.host;
+  const text = packText(pack && pack.facts.businessId === payload.facts.businessId ? pack : previewPack, lang);
 
   async function copyAll() {
     try {
@@ -112,14 +72,19 @@ export function ResultClient() {
     setTimeout(() => setCopied(false), 1600);
   }
 
-  function download() {
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `khatwa-ads-${host}-${lang}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  function lockAndGo() {
+    if (!payload || !sel) {
+      router.push(`/?lang=${lang}`);
+      return;
+    }
+    const next = lockAdPack(payload, sel, lang, pack?.layoutId || "feed_bold");
+    saveAdPack(next);
+    setPack(next);
+    router.push(`/design?lang=${lang}`);
   }
+
+  const host = payload.facts.host;
+  const already = Boolean(pack && pack.facts.businessId === payload.facts.businessId);
 
   return (
     <AppFrame lang={lang}>
@@ -128,27 +93,21 @@ export function ResultClient() {
         <div>
           <h1 className="text-3xl font-black">{t("resultTitle", lang)}</h1>
           <p className="mt-2 max-w-xl text-khatwa-mute">{t("resultSub", lang)}</p>
+          {already ? <p className="mt-2 text-sm font-bold text-khatwa-green">{t("lockedNote", lang)}</p> : null}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <PrimaryCta onClick={() => void copyAll()}>{copied ? t("copied", lang) : t("copyAll", lang)}</PrimaryCta>
-          <PrimaryCta onClick={download} className="!bg-khatwa-ink">
-            {t("download", lang)}
-          </PrimaryCta>
-        </div>
+        <PrimaryCta onClick={lockAndGo} data-cta="lock-ad">
+          {already ? t("lockedContinue", lang) : t("lockCta", lang)}
+        </PrimaryCta>
       </div>
 
-      <div className="mt-8">
-        <AdFrames
-          name={payload.facts.name.value || payload.facts.host}
-          headline={headline}
-          image={image}
-          cta={cta}
-          lang={lang}
-        />
+      <div className="mt-8 flex gap-4 overflow-x-auto pb-2">
+        {AD_LAYOUTS.slice(0, 4).map((layout) => (
+          <AdPoster key={layout.id} pack={{ ...previewPack, layoutId: layout.id }} layoutId={layout.id} />
+        ))}
       </div>
 
       <div className="mt-8 grid gap-3">
-        {chosen.lines.map((line) => (
+        {previewPack.lines.map((line) => (
           <div key={line.id} className="k-card p-4">
             <p className="text-xs font-extrabold text-khatwa-green">{t(line.kind, lang)}</p>
             <p className="mt-1 text-lg font-bold">{line.text}</p>
@@ -158,7 +117,7 @@ export function ResultClient() {
       </div>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">
-        {chosen.images.map((img) => (
+        {previewPack.images.map((img) => (
           <figure key={img.id} className="k-card overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={img.src} alt={img.alt} className="h-40 w-full object-cover" />
@@ -168,7 +127,35 @@ export function ResultClient() {
       </div>
 
       <div className="mt-10 flex flex-wrap gap-3">
-        <PrimaryCta onClick={() => router.push(`/scan?lang=${lang}`)}>{t("backMarket", lang)}</PrimaryCta>
+        <PrimaryCta onClick={lockAndGo}>{already ? t("lockedContinue", lang) : t("lockCta", lang)}</PrimaryCta>
+        <button
+          type="button"
+          className="rounded-2xl border border-khatwa-line px-6 py-3 font-extrabold"
+          onClick={() => void copyAll()}
+        >
+          {copied ? t("copied", lang) : t("copyAll", lang)}
+        </button>
+        <button
+          type="button"
+          className="rounded-2xl border border-khatwa-line px-6 py-3 font-extrabold"
+          onClick={() => downloadTextFile(`khatwa-ads-${host}-${lang}.txt`, text)}
+        >
+          {t("download", lang)}
+        </button>
+        <button
+          type="button"
+          className="rounded-2xl border border-khatwa-line px-6 py-3 font-extrabold"
+          onClick={() => router.push(`/tools?lang=${lang}`)}
+        >
+          {t("toolsNav", lang)}
+        </button>
+        <button
+          type="button"
+          className="rounded-2xl border border-khatwa-line px-6 py-3 font-extrabold"
+          onClick={() => router.push(`/scan?lang=${lang}`)}
+        >
+          {t("backMarket", lang)}
+        </button>
         <button
           type="button"
           className="rounded-2xl border border-khatwa-line px-6 py-3 font-extrabold"

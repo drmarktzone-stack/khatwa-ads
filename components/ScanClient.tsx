@@ -8,11 +8,14 @@ import { CopyMarketplace } from "@/components/CopyMarketplace";
 import { ImageGrid } from "@/components/ImageGrid";
 import { JourneySteps } from "@/components/JourneySteps";
 import { PrimaryCta } from "@/components/PrimaryCta";
+import { VariantGallery } from "@/components/VariantGallery";
+import { lockAdPack } from "@/lib/adpack";
 import { t } from "@/lib/i18n";
 import { parseLang } from "@/lib/lang";
 import { resolveMarketplacePayload } from "@/lib/scan-accept";
 import { defaultSelection, loadDraftUrl, loadLastScanUrl, loadScan, loadSelection, saveScan, saveSelection } from "@/lib/session";
-import type { CopyLine, ScanPayload } from "@/lib/types";
+import type { AdVariant, CopyLine, ScanPayload } from "@/lib/types";
+import { variantsFromSelection } from "@/lib/variants";
 
 function homeWithUrl(lang: string) {
   const draft = loadDraftUrl().trim();
@@ -30,6 +33,7 @@ export function ScanClient() {
   const [lineIds, setLineIds] = useState<string[]>([]);
   const [imageIds, setImageIds] = useState<string[]>([]);
   const [note, setNote] = useState<string | null>(null);
+  const [activeVariant, setActiveVariant] = useState<string | null>(null);
   const translatedFor = useRef<string | null>(null);
 
   useEffect(() => {
@@ -79,9 +83,24 @@ export function ScanClient() {
 
   const lineSet = useMemo(() => new Set(lineIds), [lineIds]);
   const imageSet = useMemo(() => new Set(imageIds), [imageIds]);
+  const sel = useMemo(() => ({ lineIds, imageIds }), [lineIds, imageIds]);
+  const preview = useMemo(() => (payload ? lockAdPack(payload, sel, lang) : null), [payload, sel, lang]);
+  const variants = useMemo(() => (payload ? variantsFromSelection(payload, sel, 12) : []), [payload, sel]);
 
   function toggle(list: string[], id: string, setter: (v: string[]) => void) {
     setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  }
+
+  function pickVariant(variant: AdVariant) {
+    setActiveVariant(variant.id);
+    setLineIds((prev) => {
+      const next = prev.includes(variant.headline.id) ? prev : [variant.headline.id, ...prev];
+      return next;
+    });
+    setImageIds((prev) => {
+      const next = [variant.image.id, ...prev.filter((id) => id !== variant.image.id)];
+      return next;
+    });
   }
 
   function continueOn() {
@@ -127,7 +146,12 @@ export function ScanClient() {
       <JourneySteps lang={lang} step={2} />
       {note ? <p className="mb-4 text-sm font-bold text-khatwa-green">{note}</p> : null}
       <BusinessCard payload={payload} lang={lang} />
-      <div className="mt-10">
+      {preview && variants.length ? (
+        <div className="mt-12">
+          <VariantGallery pack={preview} variants={variants} lang={lang} activeId={activeVariant} onPick={pickVariant} />
+        </div>
+      ) : null}
+      <div className="mt-12">
         <CopyMarketplace
           lines={payload.lines}
           selected={lineSet}
@@ -135,7 +159,7 @@ export function ScanClient() {
           lang={lang}
         />
       </div>
-      <div className="mt-10">
+      <div className="mt-12">
         <ImageGrid
           images={payload.images}
           selected={imageSet}
@@ -146,7 +170,7 @@ export function ScanClient() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-khatwa-line bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className="text-sm font-semibold">
-            {lineIds.length + imageIds.length} {t("selected", lang)}
+            {lineIds.length + imageIds.length} {t("selected", lang)} · {variants.length} {t("variantsTitle", lang)}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -163,9 +187,9 @@ export function ScanClient() {
               type="button"
               className="rounded-2xl border border-khatwa-line px-4 py-2 text-sm font-bold"
               onClick={() => {
-                const sel = defaultSelection(payload);
-                setLineIds(sel.lineIds);
-                setImageIds(sel.imageIds);
+                const next = defaultSelection(payload);
+                setLineIds(next.lineIds);
+                setImageIds(next.imageIds);
               }}
             >
               {t("selectSome", lang)}

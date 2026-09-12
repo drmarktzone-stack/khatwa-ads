@@ -51,12 +51,13 @@ export function PreviewClient() {
   return (
     <AppFrame lang={lang}>
       <JourneySteps lang={lang} step={5} />
-      <div className="grid items-start gap-8 lg:grid-cols-[auto_1fr]">
+      <div className="grid items-start gap-10 lg:grid-cols-[auto_1fr]">
         <div className="flex justify-center">
-          <AdPoster pack={pack} className="!w-[min(100%,320px)]" />
+          <AdPoster pack={pack} className="!w-[min(100%,340px)]" />
         </div>
-        <div>
-          <h1 className="text-3xl font-black">{t("previewTitle", lang)}</h1>
+        <div className="k-studio p-6 sm:p-8">
+          <p className="k-kicker">{t("caption", lang)}</p>
+          <h1 className="mt-3 text-4xl font-black">{t("previewTitle", lang)}</h1>
           <p className="mt-2 text-khatwa-mute">{t("previewSub", lang)}</p>
           <p className="mt-3 text-sm font-extrabold text-khatwa-green">
             {layout.name[lang]} · {layout.ratio === "1:1" ? t("ratioFeed", lang) : t("ratioStory", lang)}
@@ -75,7 +76,7 @@ export function PreviewClient() {
             <PrimaryCta onClick={() => router.push(`/publish?lang=${lang}`)}>{t("publishNow", lang)}</PrimaryCta>
             <button
               type="button"
-              className="rounded-2xl border border-khatwa-ink bg-khatwa-ink px-6 py-3 font-extrabold text-white"
+              className="rounded-2xl bg-khatwa-ink px-6 py-3 font-extrabold text-white"
               onClick={saveDraft}
             >
               {saved ? t("draftSaved", lang) : t("saveDraft", lang)}

@@ -68,7 +68,7 @@ function parseBundle(raw: string, pack: AdPack, fallback: ToolsBundle): ToolsBun
   try {
     const parsed = JSON.parse(match[0]) as Partial<ToolsBundle>;
     const next: ToolsBundle = {
-      scripts: Array.isArray(parsed.scripts) && parsed.scripts.length ? parsed.scripts : fallback.scripts,
+      scripts: Array.isArray(parsed.scripts) && parsed.scripts.length >= 7 ? parsed.scripts : fallback.scripts,
       carousel: Array.isArray(parsed.carousel) && parsed.carousel.length >= 8 ? parsed.carousel : fallback.carousel,
       calendar: Array.isArray(parsed.calendar) && parsed.calendar.length >= 28 ? parsed.calendar : fallback.calendar,
       bios: Array.isArray(parsed.bios) && parsed.bios.length ? parsed.bios : fallback.bios,

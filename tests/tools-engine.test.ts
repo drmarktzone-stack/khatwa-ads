@@ -42,7 +42,11 @@ test("facts fallback tools stay honest for every demo niche", () => {
     const payload = payloadFromFacts(factsFromDemo(demo));
     const pack = lockAdPack(payload, defaultSelection(payload), "ar");
     const bundle = buildToolsBundle(pack, "ar");
-    assert.ok(bundle.scripts.length >= 1, `${demo.slug} scripts`);
+    assert.equal(bundle.scripts.length, 7, `${demo.slug} scripts ${bundle.scripts.length}`);
+    assert.deepEqual(
+      bundle.scripts.map((s) => s.n),
+      [1, 2, 3, 4, 5, 6, 7],
+    );
     assert.equal(bundle.carousel.length, 10, `${demo.slug} carousel`);
     assert.equal(bundle.calendar.length, 30, `${demo.slug} calendar`);
     assert.ok(bundle.bios.length >= 1, `${demo.slug} bios`);

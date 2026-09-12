@@ -5,6 +5,8 @@
 :root {
   --k-green: #1b7f4e;
   --k-yellow: #f5c518;
+  --k-lime: #d6f26a;
+  --k-ink: #143028;
 }
 
 html,
@@ -14,10 +16,28 @@ body {
 
 body {
   background:
-    radial-gradient(1200px 500px at 10% -10%, #fff6d4 0%, transparent 50%),
-    radial-gradient(900px 420px at 110% 0%, #d9f3e4 0%, transparent 46%),
-    linear-gradient(180deg, #f4fbf6 0%, #ffffff 42%, #fffdf4 100%);
+    radial-gradient(1100px 520px at 8% -12%, #fff3b8 0%, transparent 52%),
+    radial-gradient(900px 460px at 108% -4%, #c8f0d8 0%, transparent 48%),
+    radial-gradient(700px 380px at 70% 110%, #eef8c9 0%, transparent 46%),
+    linear-gradient(180deg, #f3fbf5 0%, #ffffff 38%, #fffdf6 100%);
   color: #143028;
+}
+
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  opacity: 0.35;
+  background-image: radial-gradient(#1b7f4e14 0.8px, transparent 0.8px);
+  background-size: 18px 18px;
+  z-index: 0;
+}
+
+#__next,
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 ::selection {
@@ -26,14 +46,26 @@ body {
 }
 
 .pattern-dots {
-  background-image: radial-gradient(#1b7f4e22 1px, transparent 1px);
-  background-size: 18px 18px;
+  background-image: radial-gradient(#1b7f4e1a 1.1px, transparent 1.1px);
+  background-size: 16px 16px;
 }
 
 .k-card {
-  @apply rounded-3xl bg-white shadow-card border border-khatwa-line;
+  @apply rounded-[1.7rem] border border-khatwa-line bg-white shadow-card;
 }
 
 .k-chip {
   @apply inline-flex items-center gap-1 rounded-full border border-khatwa-line bg-white px-3 py-1 text-sm text-khatwa-ink;
+}
+
+.k-studio {
+  @apply rounded-[2rem] border border-khatwa-line bg-white/80 shadow-card backdrop-blur-sm;
+}
+
+.k-kicker {
+  @apply inline-flex items-center gap-2 rounded-full bg-khatwa-lime px-3 py-1 text-xs font-extrabold tracking-wide text-khatwa-ink;
+}
+
+.k-display {
+  letter-spacing: -0.03em;
 }

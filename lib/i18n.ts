@@ -253,6 +253,32 @@ const D: Dict = {
     en: "Nothing picked — we continue with the top 6 lines and 3 images.",
   },
   owner: { ar: "صاحب المشروع: drmarktzone-stack", he: "בעלים: drmarktzone-stack", en: "Owner: drmarktzone-stack" },
+  variantsTitle: { ar: "معرض الإعلانات", he: "גלריית מודעות", en: "Ad gallery" },
+  variantsSub: {
+    ar: "عناوين × صور × إطارات 1:1 و9:16 — زي AdCreative. بلا علامات كاذبة وبلا ترتيب ملفّق.",
+    he: "כותרות × תמונות × פריימים 1:1 ו-9:16. בלי ציון מזויף ובלי דירוג מומצא.",
+    en: "Headlines × images × 1:1 and 9:16 frames. No fake scores, no invented rank.",
+  },
+  variantsHint: {
+    ar: "كل كرت إعلان كامل — اختار اللي بتحبّو، منكمّل عليه.",
+    he: "כל כרטיס הוא מודעה שלמה — בחרו והמשיכו.",
+    en: "Each card is a finished ad — pick one and continue.",
+  },
+  noScores: { ar: "بلا علامات اختراع", he: "בלי ציונים מומצאים", en: "No invented scores" },
+  variantPick: { ar: "كمّل على هالإعلان", he: "המשיכו עם המודעה", en: "Continue with this ad" },
+  studio: { ar: "ستوديو خطوة", he: "סטודיו חַטְוַה", en: "Khatwa studio" },
+  howItWorks: { ar: "كيف بتشتغل", he: "איך זה עובד", en: "How it works" },
+  heroKicker: { ar: "رابط → دزينة إعلانات", he: "קישור → עשרות מודעות", en: "URL → a dozen ads" },
+  nicheTile: { ar: "تخصص", he: "נישה", en: "Niche" },
+  scriptN: { ar: "سكربت", he: "סקריפט", en: "Script" },
+  ugcVoice: { ar: "UGC محلي — احكي للكاميرا", he: "UGC מקומי — דברו למצלמה", en: "Local UGC — talk to camera" },
+  monthGrid: { ar: "رزنامة الشهر", he: "לוח החודש", en: "Month grid" },
+  pickLayout: { ar: "اختار الإطار", he: "בחרו פריים", en: "Pick a frame" },
+  feedRow: { ar: "فيد إنستغرام / Meta 1:1", he: "פיד אינסטגרם / Meta 1:1", en: "Instagram / Meta feed 1:1" },
+  storyRow: { ar: "ستوري / ريلز 9:16", he: "סטורי / רילס 9:16", en: "Story / Reels 9:16" },
+  honestScan: { ar: "مسح صادق", he: "סריקה כנה", en: "Honest scan" },
+  lockThen: { ar: "بعد القفل: تصميم، معاينة، نشر", he: "אחרי נעילה: עיצוב, תצוגה, פרסום", en: "After lock: design, preview, publish" },
+  moreAds: { ar: "إعلانات أكثر من نفس الاختيار", he: "עוד מודעות מאותה בחירה", en: "More ads from the same pick" },
 };
 
 export function t(key: keyof typeof D, lang: Lang): string {

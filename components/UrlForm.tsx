@@ -55,6 +55,7 @@ export function UrlForm({ lang, initialUrl = "" }: { lang: Lang; initialUrl?: st
   }
 
   async function runLiveScan(scanUrl: string, mode: "typed" | "sample") {
+    if (busy) return;
     const typed = url;
     if (mode === "typed") {
       saveDraftUrl(typed);
@@ -102,6 +103,7 @@ export function UrlForm({ lang, initialUrl = "" }: { lang: Lang; initialUrl?: st
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
     const next = url.trim();
     if (!next) {
       setError(t("needUrl", lang));
@@ -111,6 +113,7 @@ export function UrlForm({ lang, initialUrl = "" }: { lang: Lang; initialUrl?: st
   }
 
   function retryTyped() {
+    if (busy) return;
     const next = url.trim();
     if (!next) {
       setError(t("needUrl", lang));
@@ -135,7 +138,7 @@ export function UrlForm({ lang, initialUrl = "" }: { lang: Lang; initialUrl?: st
             dir="ltr"
             autoComplete="url"
           />
-          <PrimaryCta type="submit" className="min-h-14 min-w-44" disabled={busy}>
+          <PrimaryCta type="submit" className="min-h-14 min-w-44">
             {busy ? t("scanning", lang) : t("scan", lang)}
           </PrimaryCta>
         </div>
@@ -151,7 +154,7 @@ export function UrlForm({ lang, initialUrl = "" }: { lang: Lang; initialUrl?: st
           <div className="mt-3 flex flex-col gap-2 text-sm text-khatwa-ink">
             <span>{error}</span>
             <div className="flex flex-wrap items-center gap-3">
-              <PrimaryCta onClick={retryTyped} className="!py-2 !text-sm" disabled={busy}>
+              <PrimaryCta onClick={retryTyped} className="!py-2 !text-sm">
                 {t("retry", lang)}
               </PrimaryCta>
               <button

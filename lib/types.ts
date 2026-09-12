@@ -128,8 +128,18 @@ export interface AdPack {
   draft: boolean;
 }
 
+export interface AdVariant {
+  id: string;
+  headline: CopyLine;
+  image: NicheImage;
+  layoutId: AdLayoutId;
+  hook?: CopyLine;
+  cta?: CopyLine;
+}
+
 export interface ViralScript {
   id: string;
+  n: number;
   title: string;
   hook: string;
   beats: string[];

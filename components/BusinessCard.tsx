@@ -2,6 +2,7 @@
 
 import { t } from "@/lib/i18n";
 import { fontClass, type Lang } from "@/lib/lang";
+import { NICHE_MARKS } from "@/lib/niche-marks";
 import { nicheLabel } from "@/lib/niches";
 import type { EvidenceLevel, ScanPayload } from "@/lib/types";
 
@@ -38,23 +39,24 @@ export function BusinessCard({ payload, lang }: { payload: ScanPayload; lang: La
   const facts = payload.facts;
   const phones = facts.phones.length ? facts.phones.join(" · ") : facts.phone.value;
   return (
-    <section className={`k-card p-5 sm:p-6 ${fontClass(lang)}`}>
+    <section className={`k-card p-5 sm:p-7 ${fontClass(lang)}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-khatwa-green">{t("cardTitle", lang)}</p>
-          <h2 className="mt-1 text-2xl font-extrabold">{facts.name.value || facts.host}</h2>
+          <p className="k-kicker">{t("cardTitle", lang)}</p>
+          <h2 className="mt-3 text-3xl font-black">{facts.name.value || facts.host}</h2>
           <p className="mt-1 text-sm text-khatwa-mute" dir="ltr">
             {facts.url}
           </p>
         </div>
         <span
           data-niche-badge={facts.niche}
-          className="rounded-full bg-khatwa-yellow px-3 py-1 text-sm font-extrabold text-khatwa-ink"
+          className="inline-flex items-center gap-2 rounded-full bg-khatwa-yellow px-3 py-1.5 text-sm font-extrabold text-khatwa-ink"
         >
+          <span>{NICHE_MARKS[facts.niche]}</span>
           {t("nicheBadge", lang)}: {nicheLabel(facts.niche, lang)}
         </span>
       </div>
-      <p className="mt-4 rounded-2xl bg-khatwa-yellow-soft px-4 py-3 text-sm font-medium">{payload.notice}</p>
+      <p className="mt-5 rounded-2xl bg-khatwa-yellow-soft px-4 py-3 text-sm font-medium">{payload.notice}</p>
       <div className="mt-4 grid gap-3">
         <Row label={t("name", lang)} value={facts.name.value} level={facts.name.evidence} lang={lang} />
         <Row label={t("phone", lang)} value={phones} level={facts.phone.evidence} lang={lang} />

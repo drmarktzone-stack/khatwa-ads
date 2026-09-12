@@ -79,24 +79,21 @@ export function PublishClient() {
   return (
     <AppFrame lang={lang}>
       <JourneySteps lang={lang} step={6} />
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black">{t("whereTitle", lang)}</h1>
+          <p className="k-kicker">{t("noPasswords", lang)}</p>
+          <h1 className="mt-3 text-4xl font-black">{t("whereTitle", lang)}</h1>
           <p className="mt-2 max-w-xl text-khatwa-mute">{t("whereSub", lang)}</p>
         </div>
         <AdPoster pack={pack} className="!w-[180px]" />
       </div>
 
-      <p className="mt-6 rounded-2xl bg-khatwa-lime/80 px-4 py-3 text-sm font-extrabold text-khatwa-ink">
-        {t("noPasswords", lang)}
-      </p>
-
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {PUBLISH_DESTS.map((dest) => (
-          <article key={dest.id} className="k-card p-5" data-dest={dest.id}>
+          <article key={dest.id} className="k-card p-6" data-dest={dest.id}>
             <h2 className="text-xl font-black">{dest.name[lang]}</h2>
-            <p className="mt-2 text-sm text-khatwa-mute">{dest.hint[lang]}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <p className="mt-2 text-sm leading-relaxed text-khatwa-mute">{dest.hint[lang]}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
               {dest.id === "whatsapp" ? (
                 <a
                   href={whatsappShareUrl(`${shareBody.text}\n${shareBody.url}`)}
@@ -125,7 +122,7 @@ export function PublishClient() {
               </button>
             </div>
             {openHow === dest.id ? (
-              <p className="mt-3 text-sm font-semibold leading-relaxed text-khatwa-ink">{dest.how[lang]}</p>
+              <p className="mt-4 text-sm font-semibold leading-relaxed text-khatwa-ink">{dest.how[lang]}</p>
             ) : null}
           </article>
         ))}
@@ -136,8 +133,18 @@ export function PublishClient() {
           <PrimaryCta onClick={() => void nativeShare()}>
             {shared ? t("copied", lang) : t("shareNative", lang)}
           </PrimaryCta>
+        ) : (
+          <PrimaryCta onClick={() => void downloadBoth()}>{t("downloadBoth", lang)}</PrimaryCta>
+        )}
+        {canUseNativeShare() ? (
+          <button
+            type="button"
+            className="rounded-2xl bg-khatwa-lime px-6 py-3 font-extrabold text-khatwa-ink"
+            onClick={() => void downloadBoth()}
+          >
+            {t("downloadBoth", lang)}
+          </button>
         ) : null}
-        <PrimaryCta onClick={() => void downloadBoth()}>{t("downloadBoth", lang)}</PrimaryCta>
         <button
           type="button"
           className="rounded-2xl border border-khatwa-line px-6 py-3 font-extrabold"

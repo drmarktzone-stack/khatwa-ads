@@ -42,7 +42,7 @@ Never stuck after marketplace selection. Primary result CTA is **اقفل الإ
 
 1. `/?lang=ar|he|en` — paste a URL and **امسح الموقع**. Niche tiles labeled **عيّنة** are a separate demo path. Home also lists **شمائل** start cards.
 2. `/scan` — honest business card with a **niche badge**, copy marketplace **grouped by niche angles**, image grid (site photos first, unique captions).
-3. `/result` — selected lines + images. **اقفل الإعلان وكمل** freezes an immutable AdPack (session + localStorage snapshot). Copy / `.txt` remain secondary. Back-to-market and new-scan are never the only buttons.
+3. `/result` — selected lines + images plus an **AdCreative-style gallery** (headlines × images × 1:1/9:16 — no fake scores). **اقفل الإعلان وكمل** freezes an immutable AdPack (session + localStorage snapshot). Copy / `.txt` remain secondary. Back-to-market and new-scan are never the only buttons.
 4. `/design` — carousel of **≥4 layouts** (1:1 feed + 9:16 story): photo + name + place + phone + CTA overlays.
 5. `/preview` — full poster, **editable caption**, **نشر الآن** + **حفظ كمسودة** (draft stays on-device).
 6. `/publish` — أين تريد النشر؟ Facebook / Instagram / WhatsApp / TikTok:
@@ -52,7 +52,7 @@ Never stuck after marketplace selection. Primary result CTA is **اقفل الإ
    - Deep-link / how-to to open Meta Ads, Instagram, TikTok with assets ready
    - **No passwords. No silent posting.**
 7. `/tools` — Mohtawak-class شمائل (also linked from the header and home):
-   - نصوص فيروسية / viral Reels–TikTok scripts
+   - نصوص فيروسية / viral Reels–TikTok scripts **1→7** (UGC, niche-aware)
    - كاروسيل (10-slide outline + captions)
    - تقويم ٣٠ يوم from the niche warehouse
    - محسّن البايو (3 variants)
@@ -73,7 +73,7 @@ Each tool uses scan facts + locked lines. Gemini when keys exist; facts/warehous
 | Images | Site images first; **per-niche motifs** + unique captions; optional **gemini-2.5-flash-image** / Imagen | Motif stock + unique captions |
 | Translate | Cloud Translation or Gemini from the AR base | Facts-engine HE/EN |
 | Export / publish | Text pack + layout PNG 1:1 / 9:16 + wa.me / Web Share | Always local |
-| شمائل | Scripts, carousel, 30-day calendar, bios, stories from the locked AdPack | Facts + warehouse; Gemini optional |
+| شمائل | 7 UGC scripts, carousel, 30-day calendar, bios, stories from the locked AdPack | Facts + warehouse; Gemini optional |
 
 No engine-chrome slogans in the ad lines. No identical caption on every tile. No scavenger forms.
 

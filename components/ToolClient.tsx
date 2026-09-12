@@ -37,7 +37,9 @@ export function ToolClient({ slug }: { slug: ToolSlug }) {
     })
       .then((r) => r.json())
       .then((data: ToolsBundle) => {
-        if (data?.scripts || data?.carousel) setBundle({ ...local, ...data });
+        if (Array.isArray(data?.scripts) && data.scripts.length >= 7) {
+          setBundle({ ...local, ...data });
+        }
       })
       .catch(() => {
         /* keep facts fallback */
@@ -63,8 +65,8 @@ export function ToolClient({ slug }: { slug: ToolSlug }) {
 
   return (
     <AppFrame lang={lang}>
-      <p className="text-sm font-extrabold text-khatwa-green">{t("toolsNav", lang)}</p>
-      <h1 className="mt-2 text-3xl font-black">{card?.title[lang] || slug}</h1>
+      <p className="k-kicker">{t("toolsNav", lang)}</p>
+      <h1 className="mt-3 text-4xl font-black">{card?.title[lang] || slug}</h1>
       <p className="mt-2 max-w-2xl text-khatwa-mute">{card?.blurb[lang]}</p>
       {bundle ? (
         <p className="mt-3 text-sm font-bold text-khatwa-green">
@@ -76,10 +78,11 @@ export function ToolClient({ slug }: { slug: ToolSlug }) {
 
       {slug === "scripts" && bundle ? (
         <div className="mt-8 grid gap-4">
+          <p className="text-sm font-extrabold text-khatwa-green">{t("ugcVoice", lang)}</p>
           {bundle.scripts.map((s) => (
-            <article key={s.id} className="k-card p-5">
+            <article key={s.id} className="k-card p-5" data-script={s.n}>
               <p className="text-xs font-extrabold text-khatwa-green">
-                {s.title} · {s.durationSec}s
+                {t("scriptN", lang)} {s.n} · {s.title} · {s.durationSec}s
               </p>
               <p className="mt-2 text-xl font-black">{s.hook}</p>
               <ol className="mt-3 list-decimal space-y-1 ps-5 text-sm font-semibold">
@@ -101,29 +104,32 @@ export function ToolClient({ slug }: { slug: ToolSlug }) {
       ) : null}
 
       {slug === "carousel" && bundle ? (
-        <div className="mt-8 grid gap-3">
+        <div className="mt-8 flex gap-4 overflow-x-auto pb-4">
           {bundle.carousel.map((s) => (
-            <article key={s.n} className="k-card p-4">
+            <article key={s.n} className="k-card min-w-[240px] shrink-0 p-4">
               <p className="text-xs font-extrabold text-khatwa-green">
                 {t("slide", lang)} {s.n} · {s.title}
               </p>
-              <p className="mt-2 text-lg font-bold">{s.caption}</p>
-              <p className="mt-1 text-sm text-khatwa-mute">{s.visual}</p>
+              <p className="mt-3 text-lg font-bold">{s.caption}</p>
+              <p className="mt-2 text-sm text-khatwa-mute">{s.visual}</p>
             </article>
           ))}
         </div>
       ) : null}
 
       {slug === "calendar" && bundle ? (
-        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {bundle.calendar.map((d) => (
-            <article key={d.day} className="k-card p-4">
-              <p className="text-xs font-extrabold text-khatwa-green">
-                {t("day", lang)} {d.day} · {d.channel} · {d.theme}
-              </p>
-              <p className="mt-2 font-bold">{d.caption}</p>
-            </article>
-          ))}
+        <div className="mt-8">
+          <p className="mb-3 text-sm font-extrabold text-khatwa-green">{t("monthGrid", lang)}</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {bundle.calendar.map((d) => (
+              <article key={d.day} className="k-card p-4">
+                <p className="text-xs font-extrabold text-khatwa-green">
+                  {t("day", lang)} {d.day} · {d.channel} · {d.theme}
+                </p>
+                <p className="mt-2 font-bold">{d.caption}</p>
+              </article>
+            ))}
+          </div>
         </div>
       ) : null}
 
@@ -146,12 +152,14 @@ export function ToolClient({ slug }: { slug: ToolSlug }) {
       ) : null}
 
       {slug === "stories" && bundle ? (
-        <div className="mt-8 grid gap-4">
+        <div className="mt-8 flex gap-4 overflow-x-auto pb-4">
           {bundle.stories.map((s) => (
-            <article key={s.day} className="k-card p-5">
-              <p className="text-xs font-extrabold text-khatwa-green">{s.headline}</p>
-              <p className="mt-2 text-lg font-bold">{s.body}</p>
-              <p className="mt-2 font-extrabold">{s.cta}</p>
+            <article key={s.day} className="k-card flex min-w-[220px] shrink-0 flex-col justify-between bg-khatwa-ink p-5 text-white">
+              <p className="text-xs font-extrabold text-khatwa-lime">{s.headline}</p>
+              <p className="mt-4 text-lg font-black leading-snug">{s.body}</p>
+              <p className="mt-6 inline-flex w-fit rounded-xl bg-khatwa-lime px-3 py-1.5 text-xs font-extrabold text-khatwa-ink">
+                {s.cta}
+              </p>
             </article>
           ))}
         </div>

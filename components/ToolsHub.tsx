@@ -24,10 +24,8 @@ export function ToolsHub() {
 
   return (
     <AppFrame lang={lang}>
-      <p className="mb-3 inline-flex rounded-full bg-khatwa-lime px-3 py-1 text-sm font-extrabold text-khatwa-ink">
-        {t("toolsNav", lang)}
-      </p>
-      <h1 className="text-4xl font-black">{t("toolsTitle", lang)}</h1>
+      <p className="k-kicker">{t("toolsNav", lang)}</p>
+      <h1 className="mt-3 text-4xl font-black sm:text-5xl">{t("toolsTitle", lang)}</h1>
       <p className="mt-3 max-w-2xl text-lg text-khatwa-mute">{t("toolsSub", lang)}</p>
 
       {!pack ? (
@@ -38,16 +36,17 @@ export function ToolsHub() {
           </Link>
         </div>
       ) : (
-        <p className="mt-4 text-sm font-bold text-khatwa-green">
+        <p className="mt-5 text-sm font-bold text-khatwa-green">
           {pack.facts.name.value || pack.facts.host} · {pack.lines.length} · {pack.images.length}
         </p>
       )}
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {TOOL_CARDS.map((card) => (
+        {TOOL_CARDS.map((card, i) => (
           <article key={card.slug} className="k-card p-6" data-tool-card={card.slug}>
-            <h2 className="text-2xl font-black">{card.title[lang]}</h2>
-            <p className="mt-2 text-sm text-khatwa-mute">{card.blurb[lang]}</p>
+            <p className="text-xs font-extrabold text-khatwa-green">{String(i + 1).padStart(2, "0")}</p>
+            <h2 className="mt-2 text-2xl font-black">{card.title[lang]}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-khatwa-mute">{card.blurb[lang]}</p>
             <Link
               href={`/tools/${card.slug}?lang=${lang}`}
               className="mt-5 inline-flex rounded-full bg-khatwa-lime px-5 py-2 text-sm font-extrabold text-khatwa-ink"
@@ -72,8 +71,8 @@ export function ToolsHub() {
       ) : null}
 
       <div className="mt-10 flex flex-wrap gap-3">
-        <Link href={`/result?lang=${lang}`} className="rounded-2xl border border-khatwa-line px-6 py-3 font-extrabold">
-          {t("goLock", lang)}
+        <Link href={`/result?lang=${lang}`}>
+          <PrimaryCta>{t("goLock", lang)}</PrimaryCta>
         </Link>
         <Link href={`/publish?lang=${lang}`} className="rounded-2xl border border-khatwa-line px-6 py-3 font-extrabold">
           {t("backPublish", lang)}

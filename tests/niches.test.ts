@@ -19,6 +19,7 @@ import {
   nicheLabel,
   pickHonestName,
   sanitizeGeneratedLines,
+  termMatches,
 } from "../lib/niches";
 import { DEMOS, factsFromDemo, factsFromHtml, scanBusinessUrl } from "../lib/scan";
 
@@ -262,6 +263,107 @@ test("Jerusalem is never invented from a casual mention", () => {
   assert.equal(facts.niche, "restaurants");
   assert.notEqual(facts.place.value, "القدس");
   assert.doesNotMatch(facts.place.value || "", /القدس|ירושלים|Jerusalem/);
+});
+
+const CONTRACTOR_BLEED = /مقاول|مقاولات|تجديد بيت|شوف الشغل|كشف بيت/;
+const FOOD_LINE = /طاولة|مطبخ|قائمة|قهوة|تعشى|مطعم|أكل|طبق|ذوق|احجز/;
+
+test("Latin detect terms are whole words — tiling ⊂ IsSiteMultilingual is not a contractor hit", () => {
+  assert.equal(termMatches("IsSiteMultilingual: false", "tiling"), false);
+  assert.equal(termMatches("dmLinksMenu submenu", "menu"), false);
+  assert.equal(termMatches("kitchen remodel and tiling this week", "tiling"), true);
+  assert.equal(termMatches("See our Menu tonight", "menu"), true);
+  assert.equal(termMatches("מסעדה בשרית בצפון", "מסעדה"), true);
+  assert.equal(termMatches("מסעדת מלך הגריל", "מסעדת"), true);
+});
+
+test("food name / URL / body beats contractor chrome — grillking and lookalikes", () => {
+  assert.equal(detectNiche("ملك الجريل جريل מלך הגריל"), "restaurants");
+  assert.equal(detectNiche("King of the Grill BBQ restaurant"), "restaurants");
+  assert.equal(detectNiche("مشاوي أبو أحمد شواء"), "restaurants");
+  assert.equal(detectNiche("מסעדת הגריל באקה"), "restaurants");
+  assert.equal(
+    classifySite({
+      name: "ملك الجريل",
+      title: "מלך הגריל",
+      host: "grillking.multiscreensite.com",
+      blob: "window.Parameters = { IsSiteMultilingual: false }; nav Menu Home",
+    }),
+    "restaurants",
+  );
+  assert.equal(
+    classifySite({
+      name: "Shawarma House",
+      title: "شاورما البيت",
+      host: "shawarma-house.example",
+      blob: "IsSiteMultilingual: false. Kitchen remodel brochure leftover.",
+    }),
+    "restaurants",
+  );
+  assert.equal(nicheLabel("restaurants", "ar"), "مطاعم ومقاهي");
+  assert.notEqual(nicheLabel("restaurants", "ar"), nicheLabel("contractors", "ar"));
+});
+
+test("grillking fixture → restaurants, food-only AR copy, never contractor warehouse", () => {
+  const html = readFileSync(join(here, "fixtures/grillking.html"), "utf8");
+  const { facts } = factsFromHtml(html, "https://grillking.multiscreensite.com/");
+  assert.equal(facts.niche, "restaurants");
+  assert.equal(nicheLabel(facts.niche, "ar"), "مطاعم ومقاهي");
+  assert.notEqual(nicheLabel(facts.niche, "ar"), "مقاولون وتجديد");
+  assert.match(facts.name.value || "", /מלך הגריל|ملك الجريل|Grill/i);
+  assert.ok(facts.phones.some((p) => /053-?7932345|04-?6282282/.test(p)));
+  assert.ok(!facts.phones.some((p) => isBannedPhone(p)));
+  assert.ok(!facts.services.some((s) => /tiling|دهان|بلاط|שיפוץ/.test(s)));
+
+  const lines = buildCopyLines(facts, "ar");
+  assert.ok(lines.length >= 20);
+  assert.equal(assertDistinct(lines), true);
+  assert.ok(lines.some((l) => FOOD_LINE.test(l.text)));
+  assert.ok(
+    lines.every((l) => !CONTRACTOR_BLEED.test(l.text) && !CONTRACTOR_BLEED.test(l.ctaLabel)),
+    "restaurant warehouse leaked contractor copy",
+  );
+  assert.ok(!NICHE_REGISTRY.restaurants.copy.some((s) => CONTRACTOR_BLEED.test(`${s.ar} ${s.ctaAr}`)));
+  assert.ok(!lines.some((l) => /هاي مقاول|بيت في .+ عم يتجدّد|مقاولات /.test(l.text)));
+});
+
+test("real contractor site still classifies contractors despite Duda Menu + Multilingual chrome", () => {
+  const html = readFileSync(join(here, "fixtures/contractor-duda.html"), "utf8");
+  const { facts } = factsFromHtml(html, "https://beit-imara.multiscreensite.com/");
+  assert.equal(facts.niche, "contractors");
+  assert.equal(nicheLabel(facts.niche, "ar"), "مقاولون وتجديد");
+  assert.match(facts.name.value || "", /مقاولات بيت العمارة/);
+  const lines = buildCopyLines(facts, "ar");
+  assert.ok(lines.length >= 20);
+  assert.ok(lines.some((l) => /مقاول|تجديد|شوف الشغل/.test(l.text) || /شوف الشغل/.test(l.ctaLabel)));
+  assert.equal(
+    classifySite({
+      name: "مقاولات بيت العمارة",
+      title: "مقاول ترميم تشطيب",
+      description: "שיפוץ דירה kitchen remodel",
+      host: "renovate-hebron.example",
+      blob: "IsSiteMultilingual: false. Menu. دهان بلاط جبس.",
+    }),
+    "contractors",
+  );
+  assert.equal(detectNiche("مقاول ترميم تشطيب مطبخ שיפוץ"), "contractors");
+});
+
+test("live grillking.multiscreensite.com scan is restaurants when the page is reachable", async () => {
+  const outcome = await scanBusinessUrl("https://grillking.multiscreensite.com/", "ar");
+  if (!outcome.facts) {
+    assert.ok(outcome.error, "failure must be an error, not a silent sample");
+    return;
+  }
+  assert.equal(outcome.facts.usedDemo, false);
+  assert.equal(outcome.facts.niche, "restaurants");
+  assert.match(outcome.facts.host, /grillking\.multiscreensite\.com/i);
+  assert.match(outcome.facts.name.value || "", /מלך הגריל|ملك الجريل|Grill/i);
+  if (outcome.facts.place.value) {
+    assert.doesNotMatch(outcome.facts.place.value, /القدس|ירושלים|Jerusalem/);
+  }
+  const lines = buildCopyLines(outcome.facts, "ar");
+  assert.ok(lines.every((l) => !CONTRACTOR_BLEED.test(l.text) && !CONTRACTOR_BLEED.test(l.ctaLabel)));
 });
 
 test("live drsamerped.ai.studio scan is pediatric_clinics when the page is reachable", async () => {

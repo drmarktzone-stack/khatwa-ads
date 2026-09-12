@@ -1,5 +1,5 @@
 export { SUPPORTED_NICHES, NICHE_REGISTRY, getNiche, nicheLabel, allNicheLabels } from "./registry";
-export { detectNiche, classifySite, scoreNiches } from "./detect";
+export { detectNiche, classifySite, scoreNiches, termMatches } from "./detect";
 export {
   buildCopyLines,
   sanitizeGeneratedLines,
